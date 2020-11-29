@@ -153,9 +153,9 @@ public class ChatController {
         if (chatUserDOOptional.isPresent()) {
             ChatUserDO chatUserDO = chatUserDOOptional.get();
             Optional<ChatDO> chatDOOptional = chatRepository.findById(chatUserDO.getChatId());
-            chat = new ChatVO(chatDOOptional.get());
+            chat = new ChatVO(chatDOOptional.get(), chatUserDO);
         } else {
-            chat = chatService.createChat(user, beUser);
+            chat = chatService.createSingleChat(user, beUser);
         }
 
         /*new ChatVO(chat);

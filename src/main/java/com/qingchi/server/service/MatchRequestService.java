@@ -2,6 +2,7 @@ package com.qingchi.server.service;
 
 import com.qingchi.base.constant.ChatType;
 import com.qingchi.base.constant.ChatUserStatus;
+import com.qingchi.base.constant.CommonStatus;
 import com.qingchi.base.constant.MessageType;
 import com.qingchi.base.model.chat.ChatDO;
 import com.qingchi.base.model.chat.ChatUserDO;
@@ -56,7 +57,7 @@ public class MatchRequestService {
         //match属于私聊，需要保存对方的内容，方便展示头像昵称
         ChatUserDO mineChatUser = new ChatUserDO(chat.getId(), user.getId(), receiveUser.getId(), chat.getType());
         //自己的设置为待匹配状态，需要等对方回复后才能改为正常
-        mineChatUser.setStatus(ChatUserStatus.waitMatch);
+        mineChatUser.setStatus(CommonStatus.waitMatch);
         ChatUserDO receiveChatUser = new ChatUserDO(chat.getId(), receiveUser.getId(), user.getId(), chat.getType());
         List<ChatUserDO> chatUserDOS = Arrays.asList(mineChatUser, receiveChatUser);
         //生成chat

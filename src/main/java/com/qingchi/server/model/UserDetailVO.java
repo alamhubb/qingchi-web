@@ -248,13 +248,25 @@ public class UserDetailVO {
                 this.beFollow = beFollowCount > 0;
                 //查询出来chatUser，用来判断用户是否购买了。
                 this.showBuyMsg = true;
-                Optional<ChatUserDO> chatUserDOOptional = chatUserRepository.findFirstByUserIdAndReceiveUserId(mineUser.getId(), user.getId());
-                if (chatUserDOOptional.isPresent()) {
-                    ChatUserDO chatUserDO = chatUserDOOptional.get();
-                    if (chatUserDO.getAllowSendMsg() && chatUserDO.getByMsg() && chatUserDO.getMsgRemainNum() > 0) {
-                        this.showBuyMsg = false;
+                //如果被对方关注了，
+                if (this.beFollow){
+                    //则不需要支付，就可以发送消息
+                    this.showBuyMsg = false;
+                }else {
+                    Optional<ChatUserDO> chatUserDOOptional = chatUserRepository.findFirstByUserIdAndReceiveUserId(mineUser.getId(), user.getId());
+                    if (chatUserDOOptional.isPresent()) {
+                        ChatUserDO chatUserDO = chatUserDOOptional.get();
+                        //如果不为代开启，则允许发送
+                        if (!chatUserDO.getStatus().equals(CommonStatus.waitOpen)){
+                            this.showBuyMsg = false;
+                        }
+                        //暂时取消复杂判断逻辑，必须可发送，且已购买，且剩余次数大于0，目前，只要购买或者被关注就可以发送
+                        /*if (chatUserDO.getAllowSendMsg() && chatUserDO.getByMsg() && chatUserDO.getMsgRemainNum() > 0) {
+                            this.showBuyMsg = false;
+                        }*/
                     }
                 }
+
             } else {
                 //未登录所有人都显示可关注
                 this.hasFollowed = false;
