@@ -1,10 +1,7 @@
 package com.qingchi.server.controller;
 
 import com.qingchi.base.common.ResultVO;
-import com.qingchi.base.constant.CommonConst;
-import com.qingchi.base.constant.CommonStatus;
-import com.qingchi.base.constant.ErrorCode;
-import com.qingchi.base.constant.ErrorMsg;
+import com.qingchi.base.constant.*;
 import com.qingchi.base.entity.UserImgUtils;
 import com.qingchi.base.model.user.*;
 import com.qingchi.base.platform.tencent.TencentCloud;
@@ -178,19 +175,19 @@ public class UserDetailController {
         Integer userShell = user.getShell();
         if (userShell < 10) {
             QingLogger.logger.error("系统被攻击，不该触发这里，用户不够10贝壳");
-            return new ResultVO<>(ErrorCode.CUSTOM_ERROR);
+            return new ResultVO<>(ErrorCode.SYSTEM_ERROR);
         }
         Integer userId = queryVO.getUserId();
         Optional<UserDO> userDOOptional = userRepository.findById(userId);
         if (userDOOptional.isPresent()) {
             UserDO beUser = userDOOptional.get();
-            Optional<UserContactDO> userContactDOOptional = userContactRepository.findFirstByUserIdAndBeUserIdAndStatus(user.getId(), beUser.getId(), CommonStatus.normal);
+            Optional<UserContactDO> userContactDOOptional = userContactRepository.findFirstByUserIdAndBeUserIdAndStatus(user.getId(), beUser.getId(), CommonStatus.normal, ExpenseType.contact);
             //已经获取过了，不应该还能获取
             if (userContactDOOptional.isPresent()) {
                 QingLogger.logger.error("已经获取过用户联系方式了，不应该还能获取");
                 return new ResultVO<>(ErrorCode.SYSTEM_ERROR);
             }
-            return shellOrderService.saveShellOrders(user, beUser, userShell);
+            return shellOrderService.createAndSaveContactAndShellOrders(user, beUser, userShell, ExpenseType.contact);
         }
         return new ResultVO<>(ErrorCode.SYSTEM_ERROR);
     }

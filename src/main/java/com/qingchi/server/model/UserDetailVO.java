@@ -1,5 +1,6 @@
 package com.qingchi.server.model;
 
+import com.qingchi.base.constant.ExpenseType;
 import com.qingchi.base.model.chat.ChatUserDO;
 import com.qingchi.base.redis.DistrictVO;
 import com.qingchi.base.repository.chat.ChatUserRepository;
@@ -207,7 +208,7 @@ public class UserDetailVO {
                         //如果为查看别人的详情，则会带着自己的用户信息
                         if (mineUser != null) {
                             Optional<UserContactDO> userContactDOOptional = userContactRepository.findFirstByUserIdAndBeUserIdAndStatus(
-                                    mineUser.getId(), user.getId(), CommonStatus.normal);
+                                    mineUser.getId(), user.getId(), CommonStatus.normal, ExpenseType.contact);
                             if (userContactDOOptional.isPresent()) {
                                 //这里需要确认用户是否已获取过对方的联系方式
                                 this.contactAccount = contactAccount;
@@ -249,15 +250,15 @@ public class UserDetailVO {
                 //查询出来chatUser，用来判断用户是否购买了。
                 this.showBuyMsg = true;
                 //如果被对方关注了，
-                if (this.beFollow){
+                if (this.beFollow) {
                     //则不需要支付，就可以发送消息
                     this.showBuyMsg = false;
-                }else {
+                } else {
                     Optional<ChatUserDO> chatUserDOOptional = chatUserRepository.findFirstByUserIdAndReceiveUserId(mineUser.getId(), user.getId());
                     if (chatUserDOOptional.isPresent()) {
                         ChatUserDO chatUserDO = chatUserDOOptional.get();
                         //如果不为代开启，则允许发送
-                        if (!chatUserDO.getStatus().equals(CommonStatus.waitOpen)){
+                        if (!chatUserDO.getStatus().equals(CommonStatus.waitOpen)) {
                             this.showBuyMsg = false;
                         }
                         //暂时取消复杂判断逻辑，必须可发送，且已购买，且剩余次数大于0，目前，只要购买或者被关注就可以发送

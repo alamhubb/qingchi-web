@@ -70,4 +70,6 @@ public class ChatService {
         //需要对方的用户名，昵称。会话未开启
         return new ChatVO(chat, mineChatUser);
     }
+
+
 }
