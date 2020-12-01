@@ -47,7 +47,43 @@ public class PayShellOpenChatDomain {
     //支付创建的时候，需要判断是否已存在（你关注的对方，进入过这个界面，这个时候chat就创建了，所以你进来，他是待开启），所以不需要再次创建了
 
     @Transactional
-    public ResultVO<ChatVO> payShellOpenChat(UserDO user, ChatDO chatDO, ChatUserDO chatUserDO, ChatUserDO receiveChatUserDO) {
+    public ResultVO<ChatVO> payShellOpenChat(UserDO user, UserDO receiveUser, ChatUserDO chatUserDO) {
+        //肯定不能通过 可用状态查询是否显示，
+        //要有一个状态判断是否在前台显示，因为有时候开启了，但是前台不显示。你被对方开启
+
+        //如果为空，则走创建逻辑
+        if (chatUserDO == null) {
+
+        }
+
+        UserDO receiveUser = UserUtils.get(receiveChatUserDO.getUserId());
+
+        shellOrderService.createAndSaveContactAndShellOrders(user, receiveUser, ExpenseType.openChat);
+
+        Date curDate = new Date();
+        //chat改为开启
+        chatDO.setStatus(CommonStatus.normal);
+        chatDO.setUpdateTime(curDate);
+        //开启自己的chatUser
+        chatUserDO.setStatus(CommonStatus.normal);
+        chatUserDO.setUpdateTime(curDate);
+        chatUserDO.setFrontShow(true);
+        //自己的要在前台显示，需要有一个状态控制是否前台显示
+
+        //开启对方的chatUser
+        receiveChatUserDO.setStatus(CommonStatus.normal);
+        receiveChatUserDO.setUpdateTime(curDate);
+
+        //开启chat
+
+
+        //你需要自己的chat为代开起
+        //需要对方的用户名，昵称。会话未开启
+        return null;
+    }
+
+    @Transactional
+    public ResultVO<ChatVO> payShellOpenChatOld(UserDO user, ChatDO chatDO, ChatUserDO chatUserDO, ChatUserDO receiveChatUserDO) {
         //肯定不能通过 可用状态查询是否显示，
         //要有一个状态判断是否在前台显示，因为有时候开启了，但是前台不显示。你被对方开启
 

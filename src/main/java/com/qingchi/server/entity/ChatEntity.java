@@ -1,15 +1,12 @@
-package com.qingchi.server.service;
+package com.qingchi.server.entity;
 
-import com.qingchi.base.constant.ChatStatus;
+import com.qingchi.base.constant.ChatType;
 import com.qingchi.base.constant.CommonStatus;
 import com.qingchi.base.model.chat.ChatDO;
-import com.qingchi.base.repository.chat.ChatRepository;
 import com.qingchi.base.model.chat.ChatUserDO;
-import com.qingchi.base.repository.chat.ChatUserRepository;
-import com.qingchi.base.modelVO.ChatVO;
-import com.qingchi.base.constant.ChatType;
-import com.qingchi.base.constant.ChatUserStatus;
 import com.qingchi.base.model.user.UserDO;
+import com.qingchi.base.repository.chat.ChatRepository;
+import com.qingchi.base.repository.chat.ChatUserRepository;
 import com.qingchi.base.repository.follow.FollowRepository;
 import com.qingchi.server.model.serviceResult.CreateSingleChatResult;
 import org.springframework.stereotype.Service;
@@ -19,17 +16,12 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
+ * entity只更改do数据，但是不访问数据
  * @author qinkaiyuan
  * @date 2019-06-16 12:39
  */
 @Service
-public class ChatService {
-    @Resource
-    ChatRepository chatRepository;
-    @Resource
-    ChatUserRepository chatUserRepository;
-    @Resource
-    FollowRepository followRepository;
+public class ChatEntity {
 
     //登录情况下查询用户有权限的chatuser
     public CreateSingleChatResult createSingleChat(UserDO user, UserDO receiveUser) {
