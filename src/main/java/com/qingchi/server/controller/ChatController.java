@@ -22,6 +22,7 @@ import com.qingchi.base.service.NotifyService;
 import com.qingchi.base.utils.QingLogger;
 import com.qingchi.server.model.ChatReadVO;
 import com.qingchi.server.model.ChatRemoveVO;
+import com.qingchi.server.model.UserQueryVO;
 import com.qingchi.server.service.ChatService;
 import com.qingchi.server.service.ChatUserService;
 import org.slf4j.Logger;
@@ -177,9 +178,60 @@ public class ChatController {
     @Resource
     PayShellOpenChatDomain payShellOpenChatDomain;
 
-    //支付贝壳开启对话
     @PostMapping("payShellOpenChat")
-    public ResultVO<ChatVO> payShellOpenChat(UserDO user, @RequestBody ChatVO chatVO) {
+    public ResultVO<ChatVO> payShellOpenChat(UserDO user, @RequestBody UserQueryVO receiveUserVO) {
+        //校验用户余额是否够10贝壳
+        Integer userShell = user.getShell();
+        if (userShell < 10) {
+            QingLogger.logger.error("系统被攻击，不该触发这里，用户不够10贝壳，无法开启对话");
+            return new ResultVO<>("余额不足，请充值");
+        }
+
+        //查询chatUser，只有待开启的进不去页面，
+        Optional<ChatUserDO> chatUserDOOptional = chatUserRepository.findFirstByUserIdAndReceiveUserId(user.getId(), receiveUserVO.getUserId());
+        if (chatUserDOOptional.isPresent()) {
+            ChatUserDO chatUserDO = chatUserDOOptional.get();
+            //只有waitOpen的才需要开启，其他的有各自的逻辑，不冲突，这里只处理waitOpen的逻辑
+            if (!chatUserDO.getStatus().equals(CommonStatus.waitOpen)) {
+                return new ResultVO<>("会话已开启，请刷新后重试");
+            }
+        }
+        //如果已存在，则可能是对方查看过，如果有，则判断状态是否为已开启。为已开启提示
+
+
+
+        //查询对方是否关注了自己，只有未关注的情况，才能支付
+        Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(chatUserDO.getUserId(), chatUserDO.getReceiveUserId(), CommonStatus.normal);
+        if (followCount > 0) {
+            return new ResultVO<>("对方已经关注了您，无需支付贝壳，即可开启对话，请刷新后重试");
+        }
+
+        //如果未曾经开启过
+        Optional<UserContactDO> userContactDOOptional = userContactRepository.findFirstByUserIdAndBeUserIdAndStatus(user.getId(), chatUserDO.getReceiveUserId(), CommonStatus.normal, ExpenseType.openChat);
+        if (userContactDOOptional.isPresent()) {
+            QingLogger.logger.error("会话已开启了，不应该还能开启");
+            return new ResultVO<>("会话已开启，请刷新后重试");
+        }
+
+
+        Optional<ChatUserDO> receiveChatUserDOOptional = chatUserRepository.findFirstByChatIdAndUserId(chatDO.getId(), chatUserDO.getReceiveUserId());
+        if (!receiveChatUserDOOptional.isPresent()) {
+            QingLogger.logger.error("chat：{}下不存在该用户：{}", chatDO.getId(), user.getId());
+            return new ResultVO<>(ErrorCode.SYSTEM_ERROR);
+        }
+        ChatUserDO receiveChatUserDO = receiveChatUserDOOptional.get();
+
+        //如果未关注，则扣除贝壳
+        ResultVO resultVO = payShellOpenChatDomain.payShellOpenChat(user, chatDO, chatUserDO, receiveChatUserDO);
+
+        /*new ChatVO(chat);
+        chat = chatUserDOOptional.map(chatUserDO -> new ChatVO(chatUserDO.getChat())).orElseGet(() -> );*/
+        return new ResultVO<>();
+    }
+
+    //支付贝壳开启对话
+    @PostMapping("payShellOpenChatOld")
+    public ResultVO<ChatVO> payShellOpenChatOld(UserDO user, @RequestBody ChatVO chatVO) {
         Integer userShell = user.getShell();
         if (userShell < 10) {
             QingLogger.logger.error("系统被攻击，不该触发这里，用户不够10贝壳，无法开启对话");
@@ -222,8 +274,17 @@ public class ChatController {
             QingLogger.logger.error("会话已开启了，不应该还能开启");
             return new ResultVO<>("会话已开启，请刷新后重试");
         }
+
+
+        Optional<ChatUserDO> receiveChatUserDOOptional = chatUserRepository.findFirstByChatIdAndUserId(chatDO.getId(), chatUserDO.getReceiveUserId());
+        if (!receiveChatUserDOOptional.isPresent()) {
+            QingLogger.logger.error("chat：{}下不存在该用户：{}", chatDO.getId(), user.getId());
+            return new ResultVO<>(ErrorCode.SYSTEM_ERROR);
+        }
+        ChatUserDO receiveChatUserDO = receiveChatUserDOOptional.get();
+
         //如果未关注，则扣除贝壳
-        ResultVO resultVO = payShellOpenChatDomain.payShellOpenChat(user, chatUserDO.getReceiveUserId(), chatDO, chatUserDO);
+        ResultVO resultVO = payShellOpenChatDomain.payShellOpenChat(user, chatDO, chatUserDO, receiveChatUserDO);
 
         /*new ChatVO(chat);
         chat = chatUserDOOptional.map(chatUserDO -> new ChatVO(chatUserDO.getChat())).orElseGet(() -> );*/

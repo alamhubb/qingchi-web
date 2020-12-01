@@ -41,15 +41,15 @@ public class ShellOrderService {
      * 创建 contact消费，和保存shell订单
      * @param user
      * @param beUser
-     * @param mineUserShell
      * @param expenseType
      * @return
      */
     @Transactional
-    public ResultVO<String> createAndSaveContactAndShellOrders(UserDO user, UserDO beUser, Integer mineUserShell, String expenseType) {
+    public ResultVO<String> createAndSaveContactAndShellOrders(UserDO user, UserDO beUser, String expenseType) {
         Integer expense;
         String loseShellDetailType;
         String getShellDetailType;
+
         //分别获取开启chat和获取联系方式的贝壳消耗数量
         if (ExpenseType.contact.equals(expenseType)) {
             expense = (Integer) AppConfigConst.appConfigMap.get(AppConfigConst.contactExpenseShellKey);
@@ -86,7 +86,7 @@ public class ShellOrderService {
         shellOrderDO.setRelatedOrderId(shellOrderGiveDO.getId());
         //保存上一个的关联
         shellOrderDO = shellOrderRepository.save(shellOrderDO);
-
+        Integer mineUserShell = user.getShell();
         //保存用户
         //用户消耗
         user.setShell(mineUserShell - expense);

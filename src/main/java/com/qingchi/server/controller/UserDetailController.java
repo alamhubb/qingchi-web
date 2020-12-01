@@ -187,7 +187,7 @@ public class UserDetailController {
                 QingLogger.logger.error("已经获取过用户联系方式了，不应该还能获取");
                 return new ResultVO<>(ErrorCode.SYSTEM_ERROR);
             }
-            return shellOrderService.createAndSaveContactAndShellOrders(user, beUser, userShell, ExpenseType.contact);
+            return shellOrderService.createAndSaveContactAndShellOrders(user, beUser, ExpenseType.contact);
         }
         return new ResultVO<>(ErrorCode.SYSTEM_ERROR);
     }

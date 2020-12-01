@@ -4,6 +4,7 @@ import com.qingchi.base.common.ResultVO;
 import com.qingchi.base.constant.ChatType;
 import com.qingchi.base.constant.CommonStatus;
 import com.qingchi.base.constant.ErrorCode;
+import com.qingchi.base.constant.ExpenseType;
 import com.qingchi.base.model.chat.ChatDO;
 import com.qingchi.base.model.chat.ChatUserDO;
 import com.qingchi.base.model.user.UserContactDO;
@@ -13,10 +14,12 @@ import com.qingchi.base.repository.chat.ChatRepository;
 import com.qingchi.base.repository.chat.ChatUserRepository;
 import com.qingchi.base.repository.follow.FollowRepository;
 import com.qingchi.base.utils.QingLogger;
+import com.qingchi.base.utils.UserUtils;
 import com.qingchi.server.service.ShellOrderService;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import javax.transaction.Transactional;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -33,17 +36,38 @@ public class PayShellOpenChatDomain {
     @Resource
     private ShellOrderService shellOrderService;
 
-    public ResultVO<ChatVO> payShellOpenChat(UserDO user, Integer receiveUserId, ChatDO chatDO, ChatUserDO chatUserDO) {
+    //会话已开启，则可直接发起对话。
+    //会华为开启，判断对方是否关注你。
+    //未关注，提示开启。
 
-        Optional<ChatUserDO> receiveChatUserDOOptional = chatUserRepository.findFirstByChatIdAndUserId(chatDO.getId(), receiveUserId);
-        if (!receiveChatUserDOOptional.isPresent()) {
-            QingLogger.logger.error("chat：{}下不存在该用户：{}", chatDO.getId(), user.getId());
-            return new ResultVO<>(ErrorCode.SYSTEM_ERROR);
-        }
-        ChatUserDO receiveChatUserDO = receiveChatUserDOOptional.get();
+    //否则可以直接进入chat页面。
 
-        chatDO.setUpdateTime(new Date());
-//        chatDO.set
+    //对方关注了你，进入chat页面。有chat返回，没有创建并返回
+
+    //支付创建的时候，需要判断是否已存在（你关注的对方，进入过这个界面，这个时候chat就创建了，所以你进来，他是待开启），所以不需要再次创建了
+
+    @Transactional
+    public ResultVO<ChatVO> payShellOpenChat(UserDO user, ChatDO chatDO, ChatUserDO chatUserDO, ChatUserDO receiveChatUserDO) {
+        //肯定不能通过 可用状态查询是否显示，
+        //要有一个状态判断是否在前台显示，因为有时候开启了，但是前台不显示。你被对方开启
+
+        UserDO receiveUser = UserUtils.get(receiveChatUserDO.getUserId());
+
+        shellOrderService.createAndSaveContactAndShellOrders(user, receiveUser, ExpenseType.openChat);
+
+        Date curDate = new Date();
+        //chat改为开启
+        chatDO.setStatus(CommonStatus.normal);
+        chatDO.setUpdateTime(curDate);
+        //开启自己的chatUser
+        chatUserDO.setStatus(CommonStatus.normal);
+        chatUserDO.setUpdateTime(curDate);
+        chatUserDO.setFrontShow(true);
+        //自己的要在前台显示，需要有一个状态控制是否前台显示
+
+        //开启对方的chatUser
+        receiveChatUserDO.setStatus(CommonStatus.normal);
+        receiveChatUserDO.setUpdateTime(curDate);
 
         //开启chat
 
