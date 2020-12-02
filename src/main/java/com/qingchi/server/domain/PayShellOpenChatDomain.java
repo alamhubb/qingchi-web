@@ -51,10 +51,19 @@ public class PayShellOpenChatDomain {
         //肯定不能通过 可用状态查询是否显示，
         //要有一个状态判断是否在前台显示，因为有时候开启了，但是前台不显示。你被对方开启
 
-        //如果为空，则走创建逻辑
+        //如果为空，则走创建逻辑,付费开启，chat直接开启
         if (chatUserDO == null) {
-
+            ChatDO chatDO = new ChatDO(ChatType.single, CommonStatus.normal);
+            //生成chat
+            chatDO = chatRepository.save(chatDO);
+            ChatUserDO mineChatUserDO = new ChatUserDO(chatDO, user.getId(), receiveUser.getId());
+            ChatUserDO receiveChatUserDO = new ChatUserDO(chatDO, receiveUser.getId(), user.getId());
+            List<ChatUserDO> chatUserDOS = Arrays.asList(mineChatUserDO, receiveChatUserDO);
+            chatUserRepository.saveAll(chatUserDOS);
+        } else {
+            //更改状态返回
         }
+        //返回
 
         UserDO receiveUser = UserUtils.get(receiveChatUserDO.getUserId());
 

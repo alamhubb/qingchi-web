@@ -7,12 +7,12 @@ import lombok.Data;
 @Data
 public class CreateSingleChatResult {
     private ChatDO chat;
-    private ChatUserDO minChatUser;
+    private ChatUserDO mineChatUser;
     private ChatUserDO receiveChatUser;
 
-    public CreateSingleChatResult(ChatDO chat, ChatUserDO minChatUser, ChatUserDO receiveChatUser) {
+    public CreateSingleChatResult(ChatDO chat, ChatUserDO mineChatUser, ChatUserDO receiveChatUser) {
         this.chat = chat;
-        this.minChatUser = minChatUser;
+        this.mineChatUser = mineChatUser;
         this.receiveChatUser = receiveChatUser;
     }
 }
