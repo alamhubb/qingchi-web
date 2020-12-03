@@ -160,14 +160,16 @@ public class ChatController {
         Optional<ChatUserDO> chatUserDOOptional = chatUserRepository.findFirstByUserIdAndReceiveUserId(user.getId(), beUser.getId());
         ChatVO chat;
         //如果创建过，则获取。返回
-        //如果没创建过，则创建，并返回
         if (chatUserDOOptional.isPresent()) {
             ChatUserDO chatUserDO = chatUserDOOptional.get();
             Optional<ChatDO> chatDOOptional = chatRepository.findById(chatUserDO.getChatId());
             chat = new ChatVO(chatDOOptional.get(), chatUserDO);
+        //如果没创建过，则创建，并返回
         } else {
             chat = chatService.createSingleChat(user, beUser);
         }
+
+
 
         /*new ChatVO(chat);
         chat = chatUserDOOptional.map(chatUserDO -> new ChatVO(chatUserDO.getChat())).orElseGet(() -> );*/
@@ -222,11 +224,10 @@ public class ChatController {
         }
 
         //如果未关注，则扣除贝壳
-        ResultVO resultVO = payShellOpenChatDomain.payShellOpenChat(user, receiveUser, chatUserDO);
 
         /*new ChatVO(chat);
         chat = chatUserDOOptional.map(chatUserDO -> new ChatVO(chatUserDO.getChat())).orElseGet(() -> );*/
-        return new ResultVO<>();
+        return  payShellOpenChatDomain.payShellOpenChat(user, receiveUser, chatUserDO);
     }
 
     //支付贝壳开启对话

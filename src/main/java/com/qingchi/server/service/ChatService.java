@@ -39,7 +39,7 @@ public class ChatService {
         chat = chatRepository.save(chat);
 
         //match属于私聊，需要保存对方的内容，方便展示头像昵称
-        ChatUserDO mineChatUser = new ChatUserDO(chat.getId(), user.getId(), receiveUser.getId(), chat.getType());
+        ChatUserDO mineChatUser = new ChatUserDO(chat, user.getId(), receiveUser.getId());
         //自己的设置为待匹配状态，需要等对方回复后才能改为正常
 
         //查看对方是否也关注了自己
