@@ -24,6 +24,7 @@ import com.qingchi.base.utils.QingLogger;
 import com.qingchi.server.model.ChatReadVO;
 import com.qingchi.server.model.ChatRemoveVO;
 import com.qingchi.server.model.UserQueryVO;
+import com.qingchi.server.model.serviceResult.CreateSingleChatResult;
 import com.qingchi.server.service.ChatService;
 import com.qingchi.server.service.ChatUserService;
 import org.slf4j.Logger;
@@ -166,7 +167,8 @@ public class ChatController {
             chat = new ChatVO(chatDOOptional.get(), chatUserDO);
         //如果没创建过，则创建，并返回
         } else {
-            chat = chatService.createSingleChat(user, beUser);
+            CreateSingleChatResult chatResult = chatService.createSingleChat(user, beUser);
+            chat = new ChatVO(chatResult.getChat(),chatResult.getMineChatUser());
         }
 
 
