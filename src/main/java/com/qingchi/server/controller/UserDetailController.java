@@ -181,7 +181,7 @@ public class UserDetailController {
         Optional<UserDO> userDOOptional = userRepository.findById(userId);
         if (userDOOptional.isPresent()) {
             UserDO beUser = userDOOptional.get();
-            Optional<UserContactDO> userContactDOOptional = userContactRepository.findFirstByUserIdAndBeUserIdAndStatus(user.getId(), beUser.getId(), CommonStatus.normal, ExpenseType.contact);
+            Optional<UserContactDO> userContactDOOptional = userContactRepository.findFirstByUserIdAndBeUserIdAndStatusAndType(user.getId(), beUser.getId(), CommonStatus.normal, ExpenseType.contact);
             //已经获取过了，不应该还能获取
             if (userContactDOOptional.isPresent()) {
                 QingLogger.logger.error("已经获取过用户联系方式了，不应该还能获取");

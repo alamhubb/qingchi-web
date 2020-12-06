@@ -207,7 +207,7 @@ public class UserDetailVO {
                         this.showUserContact = false;
                         //如果为查看别人的详情，则会带着自己的用户信息
                         if (mineUser != null) {
-                            Optional<UserContactDO> userContactDOOptional = userContactRepository.findFirstByUserIdAndBeUserIdAndStatus(
+                            Optional<UserContactDO> userContactDOOptional = userContactRepository.findFirstByUserIdAndBeUserIdAndStatusAndType(
                                     mineUser.getId(), user.getId(), CommonStatus.normal, ExpenseType.contact);
                             if (userContactDOOptional.isPresent()) {
                                 //这里需要确认用户是否已获取过对方的联系方式

@@ -23,7 +23,7 @@ import com.qingchi.base.service.NotifyService;
 import com.qingchi.base.utils.QingLogger;
 import com.qingchi.server.model.ChatReadVO;
 import com.qingchi.server.model.ChatRemoveVO;
-import com.qingchi.server.model.UserQueryVO;
+import com.qingchi.server.model.UserIdVO;
 import com.qingchi.server.model.serviceResult.CreateSingleChatResult;
 import com.qingchi.server.service.ChatService;
 import com.qingchi.server.service.ChatUserService;
@@ -155,35 +155,168 @@ public class ChatController {
     }
 
     @PostMapping("queryChat")
-    public ResultVO<ChatVO> queryChat(UserDO user, @RequestBody UserDO beUser) {
+    public ResultVO<ChatVO> queryChat(UserDO user, @RequestBody UserIdVO receiveUserVO) {
+        UserDO receiveUser = UserUtils.get(receiveUserVO.getId());
+        if (receiveUser == null) {
+            return new ResultVO<>("该用户不存在");
+        }
+
+        //如果对方用户已经违规
+        if (receiveUser.getStatus().equals(CommonStatus.violation)) {
+            return new ResultVO<>("该用户已被封禁，无法开启会话，请刷新后重试");
+        }
+
         //进入页面之前，获取chat
         //查询是否之前已经创建过chat、
-        Optional<ChatUserDO> chatUserDOOptional = chatUserRepository.findFirstByUserIdAndReceiveUserId(user.getId(), beUser.getId());
+        Optional<ChatUserDO> chatUserDOOptional = chatUserRepository.findFirstByUserIdAndReceiveUserId(user.getId(), receiveUser.getId());
         ChatVO chat;
         //如果创建过，则获取。返回
         if (chatUserDOOptional.isPresent()) {
             ChatUserDO chatUserDO = chatUserDOOptional.get();
             Optional<ChatDO> chatDOOptional = chatRepository.findById(chatUserDO.getChatId());
             chat = new ChatVO(chatDOOptional.get(), chatUserDO);
-        //如果没创建过，则创建，并返回
+            //如果没创建过，则创建，并返回
         } else {
-            CreateSingleChatResult chatResult = chatService.createSingleChat(user, beUser);
-            chat = new ChatVO(chatResult.getChat(),chatResult.getMineChatUser());
+            CreateSingleChatResult chatResult = chatService.createSingleChat(user, receiveUser.getId());
+            chat = new ChatVO(chatResult.getChat(), chatResult.getMineChatUser());
         }
 
-
-
+        //查询对方是否关注了自己，只有未关注的情况，才能支付
+        Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(receiveUser.getId(), user.getId(), CommonStatus.normal);
+        if (followCount > 0) {
+            chat.setNeedPayOpen(false);
+        }
         /*new ChatVO(chat);
         chat = chatUserDOOptional.map(chatUserDO -> new ChatVO(chatUserDO.getChat())).orElseGet(() -> );*/
         return new ResultVO<>(chat);
     }
+
 
     @Resource
     UserContactRepository userContactRepository;
     @Resource
     PayShellOpenChatDomain payShellOpenChatDomain;
 
+    //开启对话
+    @PostMapping("openChat")
+    public ResultVO<ChatVO> openChat(UserDO user, @RequestBody ChatVO chatVO) {
+
+    }
+
+    //支付贝壳开启对话
     @PostMapping("payShellOpenChat")
+    public ResultVO<ChatVO> payShellOpenChat(UserDO user, @RequestBody ChatVO chatVO) {
+        Integer userShell = user.getShell();
+        if (userShell < 10) {
+            QingLogger.logger.error("系统被攻击，不该触发这里，用户不够10贝壳，无法开启对话");
+            return new ResultVO<>(ErrorCode.SYSTEM_ERROR);
+        }
+
+        //需要查询出来判断状态，区分返回不同的错误消息
+        Optional<ChatDO> chatDOOptional = chatRepository.findById(chatVO.getId());
+
+        if (!chatDOOptional.isPresent()) {
+            QingLogger.logger.error("不存在的chat");
+            return new ResultVO<>(ErrorCode.SYSTEM_ERROR);
+        }
+        ChatDO chatDO = chatDOOptional.get();
+        //如果不为待开启
+        if (!chatDO.getStatus().equals(CommonStatus.waitOpen)) {
+            return new ResultVO<>("会话已开启，请刷新后重试");
+        }
+
+        //查询chatUser
+        ResultVO<ChatUserDO> chatUserResultVO = checkChatUserAndStatusIsWaitOpen(chatDO.getId(), user.getId());
+        if (chatUserResultVO.hasError()) {
+            return new ResultVO<>(chatUserResultVO);
+        }
+
+        ChatUserDO chatUserDO = chatUserResultVO.getData();
+
+        Integer receiveUserId = chatUserDO.getReceiveUserId();
+
+        UserDO receiveUser = UserUtils.get(receiveUserId);
+
+        //如果对方用户已经违规
+        if (receiveUser.getStatus().equals(CommonStatus.violation)) {
+            return new ResultVO<>("该用户已被封禁，无法开启会话，请刷新后重试");
+        }
+
+        //查询receiveChatUserDO
+        ResultVO<ChatUserDO> receiveChatUserResultVO = checkChatUserAndStatusIsWaitOpen(chatDO.getId(), user.getId());
+        if (receiveChatUserResultVO.hasError()) {
+            return new ResultVO<>(receiveChatUserResultVO);
+        }
+
+        ChatUserDO receiveChatUserDO = receiveChatUserResultVO.getData();
+
+        //如果未曾经开启过
+        Optional<UserContactDO> userContactDOOptional = userContactRepository.findFirstByUserIdAndBeUserIdAndStatusAndType(user.getId(), receiveUserId, CommonStatus.normal, ExpenseType.openChat);
+        if (userContactDOOptional.isPresent()) {
+            QingLogger.logger.error("会话已开启了，不应该还能开启");
+            return new ResultVO<>("会话已开启，请刷新后重试");
+        }
+
+        //查询对方是否关注了自己，只有未关注的情况，才能支付
+        Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(chatUserDO.getUserId(), receiveUserId, CommonStatus.normal);
+        if (followCount > 0) {
+            return new ResultVO<>("对方已经关注了您，无需支付贝壳，即可开启对话，请刷新后重试");
+        }
+
+
+        //如果未关注，则扣除贝壳
+        ResultVO resultVO = payShellOpenChatDomain.payShellOpenChat(user, receiveUser, chatDO, chatUserDO, receiveChatUserDO);
+
+        /*new ChatVO(chat);
+        chat = chatUserDOOptional.map(chatUserDO -> new ChatVO(chatUserDO.getChat())).orElseGet(() -> );*/
+        return new ResultVO<>();
+    }
+
+    private ResultVO<ChatUserDO> checkChatUserAndStatusIsWaitOpen(Long chatId, Integer userId) {
+        Optional<ChatUserDO> receiveChatUserDOOptional = chatUserRepository.findFirstByChatIdAndUserId(chatId, userId);
+        if (!receiveChatUserDOOptional.isPresent()) {
+            QingLogger.logger.error("chat：{}下不存在该用户：{}", chatId, userId);
+            return new ResultVO<>(ErrorCode.SYSTEM_ERROR);
+        }
+
+        ChatUserDO chatUserDO = receiveChatUserDOOptional.get();
+
+        if (!chatUserDO.getStatus().equals(CommonStatus.waitOpen)) {
+            return new ResultVO<>("会话已开启，请刷新后重试");
+        }
+        return new ResultVO<>(chatUserDO);
+    }
+
+
+    @PostMapping("removeChat")
+    public ResultVO<?> removeChat(UserDO user, @RequestBody @Valid @NotNull ChatRemoveVO chatVO) {
+        Long chatId = chatVO.getChatId() != null ? chatVO.getChatId() : chatVO.getChatUserId();
+        Optional<ChatDO> chatDOOptional = chatRepository.findFirstByIdAndStatus(chatId, CommonStatus.normal);
+        if (!chatDOOptional.isPresent()) {
+            log.error("被攻击了，出现了不存在的消息:{}", chatId);
+            return new ResultVO<>("该聊天不存在");
+        }
+        ChatDO chat = chatDOOptional.get();
+        if (chat.getType().equals(ChatType.system_group)) {
+            return new ResultVO<>("暂时无法删除官方群聊");
+        }
+        //查询用户是否有chat权限，并且chat正常
+        Optional<ChatUserDO> chatUserDOOptional = chatUserRepository.findFirstByChatIdAndUserIdAndStatus(chat.getId(), user.getId(), CommonStatus.normal);
+        if (!chatUserDOOptional.isPresent()) {
+            log.error("用户已经被踢出来了，不具备给这个chat发送消息的权限");
+            //用户给自己被踢出来，或者自己删除的内容发消息。提示异常
+            return new ResultVO<>("聊天已关闭，请刷新后重试");
+        }
+        //查询chat
+        chat.setStatus(CommonStatus.delete);
+        chatRepository.save(chat);
+        return new ResultVO<>();
+    }
+}
+
+
+//这个是在个人详情页面，开启chat的方法
+    /*@PostMapping("payShellOpenChat")
     public ResultVO<ChatVO> payShellOpenChat(UserDO user, @RequestBody UserQueryVO receiveUserVO) {
         //校验用户余额是否够10贝壳
         Integer userShell = user.getShell();
@@ -227,98 +360,10 @@ public class ChatController {
 
         //如果未关注，则扣除贝壳
 
-        /*new ChatVO(chat);
-        chat = chatUserDOOptional.map(chatUserDO -> new ChatVO(chatUserDO.getChat())).orElseGet(() -> );*/
-        return  payShellOpenChatDomain.payShellOpenChat(user, receiveUser, chatUserDO);
-    }
-
-    //支付贝壳开启对话
-    @PostMapping("payShellOpenChatOld")
-    public ResultVO<ChatVO> payShellOpenChatOld(UserDO user, @RequestBody ChatVO chatVO) {
-        Integer userShell = user.getShell();
-        if (userShell < 10) {
-            QingLogger.logger.error("系统被攻击，不该触发这里，用户不够10贝壳，无法开启对话");
-            return new ResultVO<>(ErrorCode.SYSTEM_ERROR);
-        }
-        Optional<ChatDO> chatDOOptional = chatRepository.findById(chatVO.getId());
-
-        if (!chatDOOptional.isPresent()) {
-            QingLogger.logger.error("不存在的chat");
-            return new ResultVO<>(ErrorCode.SYSTEM_ERROR);
-        }
-        ChatDO chatDO = chatDOOptional.get();
-        //如果不为待开启
-        if (!chatDO.getStatus().equals(CommonStatus.waitOpen)) {
-            return new ResultVO<>("会话已开启，请刷新后重试");
-        }
-        //查询chatUser
-
-        Optional<ChatUserDO> chatUserDOOptional = chatUserRepository.findFirstByChatIdAndUserId(chatDO.getId(), user.getId());
-        if (!chatUserDOOptional.isPresent()) {
-            QingLogger.logger.error("chat：{}下不存在该用户：{}", chatDO.getId(), user.getId());
-            return new ResultVO<>(ErrorCode.SYSTEM_ERROR);
-        }
-
-        ChatUserDO chatUserDO = chatUserDOOptional.get();
-        //只有waitOpen的才需要开启，其他的有各自的逻辑，不冲突，这里只处理waitOpen的逻辑
-        if (!chatUserDO.getStatus().equals(CommonStatus.waitOpen)) {
-            return new ResultVO<>("会话已开启，请刷新后重试");
-        }
-
-        //查询对方是否关注了自己，只有未关注的情况，才能支付
-        Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(chatUserDO.getUserId(), chatUserDO.getReceiveUserId(), CommonStatus.normal);
-        if (followCount > 0) {
-            return new ResultVO<>("对方已经关注了您，无需支付贝壳，即可开启对话，请刷新后重试");
-        }
-
-        //如果未曾经开启过
-        Optional<UserContactDO> userContactDOOptional = userContactRepository.findFirstByUserIdAndBeUserIdAndStatus(user.getId(), chatUserDO.getReceiveUserId(), CommonStatus.normal, ExpenseType.openChat);
-        if (userContactDOOptional.isPresent()) {
-            QingLogger.logger.error("会话已开启了，不应该还能开启");
-            return new ResultVO<>("会话已开启，请刷新后重试");
-        }
-
-
-        Optional<ChatUserDO> receiveChatUserDOOptional = chatUserRepository.findFirstByChatIdAndUserId(chatDO.getId(), chatUserDO.getReceiveUserId());
-        if (!receiveChatUserDOOptional.isPresent()) {
-            QingLogger.logger.error("chat：{}下不存在该用户：{}", chatDO.getId(), user.getId());
-            return new ResultVO<>(ErrorCode.SYSTEM_ERROR);
-        }
-        ChatUserDO receiveChatUserDO = receiveChatUserDOOptional.get();
-
-        //如果未关注，则扣除贝壳
-        ResultVO resultVO = payShellOpenChatDomain.payShellOpenChat(user, chatDO, chatUserDO, receiveChatUserDO);
-
-        /*new ChatVO(chat);
-        chat = chatUserDOOptional.map(chatUserDO -> new ChatVO(chatUserDO.getChat())).orElseGet(() -> );*/
-        return new ResultVO<>();
-    }
-
-    @PostMapping("removeChat")
-    public ResultVO<?> removeChat(UserDO user, @RequestBody @Valid @NotNull ChatRemoveVO chatVO) {
-        Long chatId = chatVO.getChatId() != null ? chatVO.getChatId() : chatVO.getChatUserId();
-        Optional<ChatDO> chatDOOptional = chatRepository.findFirstByIdAndStatus(chatId, CommonStatus.normal);
-        if (!chatDOOptional.isPresent()) {
-            log.error("被攻击了，出现了不存在的消息:{}", chatId);
-            return new ResultVO<>("该聊天不存在");
-        }
-        ChatDO chat = chatDOOptional.get();
-        if (chat.getType().equals(ChatType.system_group)) {
-            return new ResultVO<>("暂时无法删除官方群聊");
-        }
-        //查询用户是否有chat权限，并且chat正常
-        Optional<ChatUserDO> chatUserDOOptional = chatUserRepository.findFirstByChatIdAndUserIdAndStatus(chat.getId(), user.getId(), CommonStatus.normal);
-        if (!chatUserDOOptional.isPresent()) {
-            log.error("用户已经被踢出来了，不具备给这个chat发送消息的权限");
-            //用户给自己被踢出来，或者自己删除的内容发消息。提示异常
-            return new ResultVO<>("聊天已关闭，请刷新后重试");
-        }
-        //查询chat
-        chat.setStatus(CommonStatus.delete);
-        chatRepository.save(chat);
-        return new ResultVO<>();
-    }
-}
+        *//*new ChatVO(chat);
+        chat = chatUserDOOptional.map(chatUserDO -> new ChatVO(chatUserDO.getChat())).orElseGet(() -> );*//*
+        return payShellOpenChatDomain.payShellOpenChat(user, receiveUser, chatUserDO);
+    }*/
 
 
         /*NotifyDO notifyDO = notifyRepository.save(new NotifyDO(user, chat.getReceiveUser(user), NotifyType.remove_chat));

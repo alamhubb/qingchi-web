@@ -69,13 +69,53 @@ public class PayShellOpenChatDomain {
     //对方已关注，提示会话未开启，点击发送时提示，会话未开启，是否确认开启会话，改为前台显示，开启时，校验对方未关注，需要付费开启，请刷新
     //已有会话，则直接进入，改为前台显示
 
-
     @Transactional
-    public ResultVO<ChatVO> payShellOpenChat(UserDO user, UserDO receiveUser, ChatUserDO chatUserDO) {
+    public ResultVO<ChatVO> payShellOpenChat(UserDO user, UserDO receiveUser, ChatDO chatDO, ChatUserDO chatUserDO, ChatUserDO receiveChatUserDO) {
+        //肯定不能通过 可用状态查询是否显示，
+        //要有一个状态判断是否在前台显示，因为有时候开启了，但是前台不显示。你被对方开启
+        Date curDate = new Date();
+        //chat改为开启
+        //开启chat
+        //你需要自己的chat为代开起
+        chatDO.setStatus(CommonStatus.normal);
+        chatDO.setUpdateTime(curDate);
+        chatDO = chatRepository.save(chatDO);
+
+        //更改状态返回
+        //开启自己的chatUser
+        chatUserDO.setStatus(CommonStatus.normal);
+        chatUserDO.setUpdateTime(curDate);
+        //自己的要在前台显示，需要有一个状态控制是否前台显示
+        chatUserDO.setFrontShow(true);
+        chatUserDO.setLastContent("您付费开启了会话");
+        chatUserDO.setOpenChatType(OpenChatType.payOpen);
+
+
+        //开启对方的chatUser
+        receiveChatUserDO.setStatus(CommonStatus.normal);
+        receiveChatUserDO.setUpdateTime(curDate);
+        receiveChatUserDO.setFrontShow(true);
+        //需要更改，到时候需要由用户1向用户2发送一条系统默认消息
+        receiveChatUserDO.setLastContent("对方付费开启了和您的会话");
+        receiveChatUserDO.setOpenChatType(OpenChatType.receivePayOpen);
+
+        List<ChatUserDO> chatUserDOS = Arrays.asList(chatUserDO, receiveChatUserDO);
+        chatUserRepository.saveAll(chatUserDOS);
+
+        //返回
+        shellOrderService.createAndSaveContactAndShellOrders(user, receiveUser, ExpenseType.openChat);
+
+        ChatVO chatVO = new ChatVO(chatDO, chatUserDO);
+        //需要对方的用户名，昵称。会话未开启
+        return new ResultVO<>(chatVO);
+    }
+
+    //对应的之前的在个人详情页面开启
+    @Transactional
+    public ResultVO<ChatVO> payShellOpenChatOnUserDetail(UserDO user, UserDO receiveUser, ChatDO chatDO, ChatUserDO chatUserDO) {
         //肯定不能通过 可用状态查询是否显示，
         //要有一个状态判断是否在前台显示，因为有时候开启了，但是前台不显示。你被对方开启
 
-        ChatDO chatDO = null;
         //如果为空，则走创建逻辑,付费开启，chat直接开启
         ChatUserDO receiveChatUserDO = null;
         if (chatUserDO == null) {
