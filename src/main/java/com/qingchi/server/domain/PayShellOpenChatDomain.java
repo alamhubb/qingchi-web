@@ -70,7 +70,7 @@ public class PayShellOpenChatDomain {
     //已有会话，则直接进入，改为前台显示
 
     @Transactional
-    public ResultVO<ChatVO> payShellOpenChat(UserDO user, UserDO receiveUser, ChatDO chatDO, ChatUserDO chatUserDO, ChatUserDO receiveChatUserDO) {
+    public ResultVO<ChatVO> openChat(UserDO user, UserDO receiveUser, ChatDO chatDO, ChatUserDO chatUserDO, ChatUserDO receiveChatUserDO, boolean needPayOpen) {
         //肯定不能通过 可用状态查询是否显示，
         //要有一个状态判断是否在前台显示，因为有时候开启了，但是前台不显示。你被对方开启
         Date curDate = new Date();
@@ -81,29 +81,42 @@ public class PayShellOpenChatDomain {
         chatDO.setUpdateTime(curDate);
         chatDO = chatRepository.save(chatDO);
 
+
         //更改状态返回
         //开启自己的chatUser
         chatUserDO.setStatus(CommonStatus.normal);
         chatUserDO.setUpdateTime(curDate);
         //自己的要在前台显示，需要有一个状态控制是否前台显示
         chatUserDO.setFrontShow(true);
-        chatUserDO.setLastContent("您付费开启了会话");
-        chatUserDO.setOpenChatType(OpenChatType.payOpen);
-
 
         //开启对方的chatUser
         receiveChatUserDO.setStatus(CommonStatus.normal);
         receiveChatUserDO.setUpdateTime(curDate);
         receiveChatUserDO.setFrontShow(true);
-        //需要更改，到时候需要由用户1向用户2发送一条系统默认消息
-        receiveChatUserDO.setLastContent("对方付费开启了和您的会话");
-        receiveChatUserDO.setOpenChatType(OpenChatType.receivePayOpen);
+        if (needPayOpen) {
+            chatUserDO.setLastContent("您付费开启了会话");
+            chatUserDO.setOpenChatType(OpenChatType.payOpen);
+
+            //需要更改，到时候需要由用户1向用户2发送一条系统默认消息
+            receiveChatUserDO.setLastContent("对方付费开启了和您的会话");
+            receiveChatUserDO.setOpenChatType(OpenChatType.receivePayOpen);
+        } else {
+            chatUserDO.setLastContent("您开启了会话");
+            chatUserDO.setOpenChatType(OpenChatType.normalOpen);
+
+            //需要更改，到时候需要由用户1向用户2发送一条系统默认消息
+            receiveChatUserDO.setLastContent("对方开启了和您的会话");
+            receiveChatUserDO.setOpenChatType(OpenChatType.normalReceiveOpen);
+        }
+
 
         List<ChatUserDO> chatUserDOS = Arrays.asList(chatUserDO, receiveChatUserDO);
         chatUserRepository.saveAll(chatUserDOS);
 
-        //返回
-        shellOrderService.createAndSaveContactAndShellOrders(user, receiveUser, ExpenseType.openChat);
+        if (needPayOpen){
+            //返回
+            shellOrderService.createAndSaveContactAndShellOrders(user, receiveUser, ExpenseType.openChat);
+        }
 
         ChatVO chatVO = new ChatVO(chatDO, chatUserDO);
         //需要对方的用户名，昵称。会话未开启

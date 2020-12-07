@@ -23,6 +23,7 @@ import com.qingchi.base.service.NotifyService;
 import com.qingchi.base.utils.QingLogger;
 import com.qingchi.server.model.ChatReadVO;
 import com.qingchi.server.model.ChatRemoveVO;
+import com.qingchi.server.model.ChatOpenVO;
 import com.qingchi.server.model.UserIdVO;
 import com.qingchi.server.model.serviceResult.CreateSingleChatResult;
 import com.qingchi.server.service.ChatService;
@@ -198,19 +199,10 @@ public class ChatController {
     PayShellOpenChatDomain payShellOpenChatDomain;
 
     //开启对话
-    @PostMapping("openChat")
-    public ResultVO<ChatVO> openChat(UserDO user, @RequestBody ChatVO chatVO) {
-        return null;
-    }
-
     //支付贝壳开启对话
-    @PostMapping("payShellOpenChat")
-    public ResultVO<ChatVO> payShellOpenChat(UserDO user, @RequestBody ChatVO chatVO) {
-        Integer userShell = user.getShell();
-        if (userShell < 10) {
-            QingLogger.logger.error("系统被攻击，不该触发这里，用户不够10贝壳，无法开启对话");
-            return new ResultVO<>(ErrorCode.SYSTEM_ERROR);
-        }
+    @PostMapping("openChat")
+    public ResultVO<ChatVO> openChat(UserDO user, @RequestBody @Valid @NotNull ChatOpenVO chatVO) {
+        Boolean needPayOpen = chatVO.getNeedPayOpen();
 
         //需要查询出来判断状态，区分返回不同的错误消息
         Optional<ChatDO> chatDOOptional = chatRepository.findById(chatVO.getId());
@@ -219,6 +211,7 @@ public class ChatController {
             QingLogger.logger.error("不存在的chat");
             return new ResultVO<>(ErrorCode.SYSTEM_ERROR);
         }
+
         ChatDO chatDO = chatDOOptional.get();
         //如果不为待开启
         if (!chatDO.getStatus().equals(CommonStatus.waitOpen)) {
@@ -235,6 +228,38 @@ public class ChatController {
 
         Integer receiveUserId = chatUserDO.getReceiveUserId();
 
+        //查询对方是否关注了自己，只有未关注的情况，才能支付
+        Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(chatUserDO.getUserId(), receiveUserId, CommonStatus.normal);
+
+        //小于1，需要付费支付
+        Boolean dbNeedPayOpen = followCount < 1;
+
+        //需要付费支付
+        if (dbNeedPayOpen) {
+            //需要付费支付，前台传值错误
+            if (!dbNeedPayOpen.equals(needPayOpen)) {
+                return new ResultVO<>("对方未关注您，需要付费开启会话，请刷新后重试");
+            }
+
+            Integer userShell = user.getShell();
+            if (userShell < 10) {
+                QingLogger.logger.error("系统被攻击，不该触发这里，用户不够10贝壳，无法开启对话");
+                return new ResultVO<>(ErrorCode.SYSTEM_ERROR);
+            }
+
+            //如果未曾经开启过
+            Optional<UserContactDO> userContactDOOptional = userContactRepository.findFirstByUserIdAndBeUserIdAndStatusAndType(user.getId(), receiveUserId, CommonStatus.normal, ExpenseType.openChat);
+            if (userContactDOOptional.isPresent()) {
+                QingLogger.logger.error("会话已开启了，不应该还能开启");
+                return new ResultVO<>("会话已开启，请刷新后重试");
+            }
+        } else {
+            //不需要付费支付，前台传值错误
+            if (!dbNeedPayOpen.equals(needPayOpen)) {
+                return new ResultVO<>("对方已经关注了您，无需支付贝壳，即可开启对话，请刷新后重试");
+            }
+        }
+
         UserDO receiveUser = UserUtils.get(receiveUserId);
 
         //如果对方用户已经违规
@@ -250,26 +275,13 @@ public class ChatController {
 
         ChatUserDO receiveChatUserDO = receiveChatUserResultVO.getData();
 
-        //如果未曾经开启过
-        Optional<UserContactDO> userContactDOOptional = userContactRepository.findFirstByUserIdAndBeUserIdAndStatusAndType(user.getId(), receiveUserId, CommonStatus.normal, ExpenseType.openChat);
-        if (userContactDOOptional.isPresent()) {
-            QingLogger.logger.error("会话已开启了，不应该还能开启");
-            return new ResultVO<>("会话已开启，请刷新后重试");
-        }
-
-        //查询对方是否关注了自己，只有未关注的情况，才能支付
-        Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(chatUserDO.getUserId(), receiveUserId, CommonStatus.normal);
-        if (followCount > 0) {
-            return new ResultVO<>("对方已经关注了您，无需支付贝壳，即可开启对话，请刷新后重试");
-        }
-
 
         //如果未关注，则扣除贝壳
-        ResultVO resultVO = payShellOpenChatDomain.payShellOpenChat(user, receiveUser, chatDO, chatUserDO, receiveChatUserDO);
+        ResultVO<ChatVO> resultVO = payShellOpenChatDomain.openChat(user, receiveUser, chatDO, chatUserDO, receiveChatUserDO, dbNeedPayOpen);
 
         /*new ChatVO(chat);
         chat = chatUserDOOptional.map(chatUserDO -> new ChatVO(chatUserDO.getChat())).orElseGet(() -> );*/
-        return new ResultVO<>();
+        return resultVO;
     }
 
     private ResultVO<ChatUserDO> checkChatUserAndStatusIsWaitOpen(Long chatId, Integer userId) {
