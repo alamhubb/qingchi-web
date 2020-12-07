@@ -200,7 +200,7 @@ public class ChatController {
     //开启对话
     @PostMapping("openChat")
     public ResultVO<ChatVO> openChat(UserDO user, @RequestBody ChatVO chatVO) {
-
+        return null;
     }
 
     //支付贝壳开启对话
