@@ -182,11 +182,14 @@ public class ChatController {
             chat = new ChatVO(chatResult.getChat(), chatResult.getMineChatUser());
         }
 
-        //查询对方是否关注了自己，只有未关注的情况，才能支付
-        Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(receiveUser.getId(), user.getId(), CommonStatus.normal);
-        if (followCount > 0) {
-            chat.setNeedPayOpen(false);
+        if (chat.getStatus().equals(CommonStatus.waitOpen)){
+            //查询对方是否关注了自己，只有未关注的情况，才能支付
+            Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(receiveUser.getId(), user.getId(), CommonStatus.normal);
+            if (followCount < 1) {
+                chat.setNeedPayOpen(true);
+            }
         }
+
         /*new ChatVO(chat);
         chat = chatUserDOOptional.map(chatUserDO -> new ChatVO(chatUserDO.getChat())).orElseGet(() -> );*/
         return new ResultVO<>(chat);
@@ -224,17 +227,19 @@ public class ChatController {
             return new ResultVO<>(chatUserResultVO);
         }
 
+        //获取chatUser
         ChatUserDO chatUserDO = chatUserResultVO.getData();
 
+        //获取receiveUserId
         Integer receiveUserId = chatUserDO.getReceiveUserId();
 
         //查询对方是否关注了自己，只有未关注的情况，才能支付
-        Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(chatUserDO.getUserId(), receiveUserId, CommonStatus.normal);
+        Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(receiveUserId, chatUserDO.getUserId(), CommonStatus.normal);
 
         //小于1，需要付费支付
         Boolean dbNeedPayOpen = followCount < 1;
 
-        //需要付费支付
+        //未关注，需要付费支付
         if (dbNeedPayOpen) {
             //需要付费支付，前台传值错误
             if (!dbNeedPayOpen.equals(needPayOpen)) {
