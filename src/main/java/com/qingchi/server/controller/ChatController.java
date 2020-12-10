@@ -253,11 +253,11 @@ public class ChatController {
             }
 
             //如果未曾经开启过
-            Optional<UserContactDO> userContactDOOptional = userContactRepository.findFirstByUserIdAndBeUserIdAndStatusAndType(user.getId(), receiveUserId, CommonStatus.normal, ExpenseType.openChat);
+            /*Optional<UserContactDO> userContactDOOptional = userContactRepository.findFirstByUserIdAndBeUserIdAndStatusAndType(user.getId(), receiveUserId, CommonStatus.normal, ExpenseType.openChat);
             if (userContactDOOptional.isPresent()) {
                 QingLogger.logger.error("会话已开启了，不应该还能开启");
                 return new ResultVO<>("会话已开启，请刷新后重试");
-            }
+            }*/
         } else {
             //不需要付费支付，前台传值错误
             if (!dbNeedPayOpen.equals(needPayOpen)) {
@@ -273,7 +273,7 @@ public class ChatController {
         }
 
         //查询receiveChatUserDO
-        ResultVO<ChatUserDO> receiveChatUserResultVO = checkChatUserAndStatusIsWaitOpen(chatDO.getId(), user.getId());
+        ResultVO<ChatUserDO> receiveChatUserResultVO = checkChatUserAndStatusIsWaitOpen(chatDO.getId(), receiveUser.getId());
         if (receiveChatUserResultVO.hasError()) {
             return new ResultVO<>(receiveChatUserResultVO);
         }

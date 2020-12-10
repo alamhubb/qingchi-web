@@ -113,10 +113,10 @@ public class PayShellOpenChatDomain {
         List<ChatUserDO> chatUserDOS = Arrays.asList(chatUserDO, receiveChatUserDO);
         chatUserRepository.saveAll(chatUserDOS);
 
-        if (needPayOpen){
+        /*if (needPayOpen){
             //返回
             shellOrderService.createAndSaveContactAndShellOrders(user, receiveUser, ExpenseType.openChat);
-        }
+        }*/
 
         ChatVO chatVO = new ChatVO(chatDO, chatUserDO);
         //需要对方的用户名，昵称。会话未开启
