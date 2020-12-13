@@ -2,6 +2,7 @@ package com.qingchi.server.model;
 
 import com.qingchi.base.constant.ExpenseType;
 import com.qingchi.base.model.chat.ChatUserDO;
+import com.qingchi.base.modelVO.ChatVO;
 import com.qingchi.base.redis.DistrictVO;
 import com.qingchi.base.repository.chat.ChatUserRepository;
 import com.qingchi.base.constant.CommonStatus;
@@ -15,6 +16,7 @@ import com.qingchi.base.repository.user.UserDetailRepository;
 import com.qingchi.base.model.user.UserImgDO;
 import com.qingchi.base.repository.user.UserImgRepository;
 import com.qingchi.server.common.FollowConst;
+import com.qingchi.server.service.ChatService;
 import lombok.Data;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
@@ -55,6 +57,12 @@ public class UserDetailVO {
     }
 
     private static FollowRepository followRepository;
+    private static ChatService chatService;
+
+    @Resource
+    public void setChatService(ChatService chatService) {
+        UserDetailVO.chatService = chatService;
+    }
 
     @Resource
     public void setFollowRepository(FollowRepository followRepository) {
@@ -137,7 +145,8 @@ public class UserDetailVO {
     //通过对方是否关注了你，和你是否已经支付过5b
     private Boolean allowSendMsg;
     //通过对方是否关注了你，你是否是对方的好友，如果不是，你是否已经购买过msg
-    private Boolean showBuyMsg;
+//    private Boolean showBuyMsg;
+    private ChatVO chat;
 
     public UserDetailVO() {
     }
@@ -155,6 +164,7 @@ public class UserDetailVO {
     }
 
     public UserDetailVO(UserDO user, Boolean isMine, UserDO mineUser) {
+        this.isMine = isMine;
         //toDO 查询mine的时候显示手机号，出生年月，别人详情时后台就控制不返回此类信息
         this.id = user.getId();
         this.nickname = StringUtils.substring(user.getNickname(), 0, 6);
@@ -219,8 +229,8 @@ public class UserDetailVO {
                 }
             }
         });
-        //如果已登录
-        if (isMine) {
+        //如果为自己
+        if (this.isMine) {
             //为自己才显示的内容
             //为自己不可关注
             this.hasFollowed = false;
@@ -235,12 +245,11 @@ public class UserDetailVO {
                 this.phoneNum = realPhoneNum.substring(0, 3) + "*****" + realPhoneNum.substring(8);
             }
             this.shell = user.getShell();
-            this.isMine = true;
+
             this.authNum = user.getAuthNum();
             this.gradeLevel = user.getGradeLevel();
             this.wealthLevel = user.getWealthLevel();
         } else {
-            this.isMine = false;
             if (mineUser != null && !mineUser.getId().equals(user.getId())) {
                 Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(mineUser.getId(), user.getId(), CommonStatus.normal);
                 this.hasFollowed = followCount > 0;
@@ -248,26 +257,9 @@ public class UserDetailVO {
                 Integer beFollowCount = followRepository.countByUserIdAndBeUserIdAndStatus(user.getId(), mineUser.getId(), CommonStatus.normal);
                 this.beFollow = beFollowCount > 0;
                 //查询出来chatUser，用来判断用户是否购买了。
-                this.showBuyMsg = true;
+//                this.showBuyMsg = true;
                 //如果被对方关注了，
-                if (this.beFollow) {
-                    //则不需要支付，就可以发送消息
-                    this.showBuyMsg = false;
-                } else {
-                    Optional<ChatUserDO> chatUserDOOptional = chatUserRepository.findFirstByUserIdAndReceiveUserId(mineUser.getId(), user.getId());
-                    if (chatUserDOOptional.isPresent()) {
-                        ChatUserDO chatUserDO = chatUserDOOptional.get();
-                        //如果不为代开启，则允许发送
-                        if (!chatUserDO.getStatus().equals(CommonStatus.waitOpen)) {
-                            this.showBuyMsg = false;
-                        }
-                        //暂时取消复杂判断逻辑，必须可发送，且已购买，且剩余次数大于0，目前，只要购买或者被关注就可以发送
-                        /*if (chatUserDO.getAllowSendMsg() && chatUserDO.getByMsg() && chatUserDO.getMsgRemainNum() > 0) {
-                            this.showBuyMsg = false;
-                        }*/
-                    }
-                }
-
+                this.chat  = chatService.getSingleChatVO(mineUser, user.getId());
             } else {
                 //未登录所有人都显示可关注
                 this.hasFollowed = false;

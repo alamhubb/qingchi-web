@@ -8,11 +8,13 @@ import com.qingchi.base.modelVO.ChatVO;
 import com.qingchi.base.constant.ChatType;
 import com.qingchi.base.constant.CommonStatus;
 import com.qingchi.base.model.user.UserDO;
+import com.qingchi.server.model.serviceResult.CreateSingleChatResult;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * @author qinkaiyuan

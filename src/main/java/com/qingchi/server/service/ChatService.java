@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * @author qinkaiyuan
@@ -30,6 +31,30 @@ public class ChatService {
     ChatUserRepository chatUserRepository;
     @Resource
     FollowRepository followRepository;
+
+    public ChatVO getSingleChatVO(UserDO user, Integer receiveUserId) {
+        Optional<ChatUserDO> chatUserDOOptional = chatUserRepository.findFirstByUserIdAndReceiveUserId(user.getId(), receiveUserId);
+        ChatVO chat;
+        //如果创建过，则获取。返回
+        if (chatUserDOOptional.isPresent()) {
+            ChatUserDO chatUserDO = chatUserDOOptional.get();
+            Optional<ChatDO> chatDOOptional = chatRepository.findById(chatUserDO.getChatId());
+            chat = new ChatVO(chatDOOptional.get(), chatUserDO);
+            //如果没创建过，则创建，并返回
+        } else {
+            CreateSingleChatResult chatResult = this.createSingleChat(user, receiveUserId);
+            chat = new ChatVO(chatResult.getChat(), chatResult.getMineChatUser());
+        }
+
+        if (chat.getStatus().equals(CommonStatus.waitOpen)){
+            //查询对方是否关注了自己，只有未关注的情况，才能支付
+            Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(receiveUserId, user.getId(), CommonStatus.normal);
+            if (followCount < 1) {
+                chat.setNeedPayOpen(true);
+            }
+        }
+        return chat;
+    }
 
     //点击一个人，陌生人，点击发送消息。
     //未关注你，进来什么也不提示？提示一下，对方未关注，发送消息需要付费，改为前台显示，提示对方已关注，无需付费请刷新

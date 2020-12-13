@@ -4,13 +4,11 @@ import com.qingchi.base.common.ResultVO;
 import com.qingchi.base.constant.ChatType;
 import com.qingchi.base.constant.CommonStatus;
 import com.qingchi.base.constant.ErrorCode;
-import com.qingchi.base.constant.ExpenseType;
 import com.qingchi.base.utils.UserUtils;
 import com.qingchi.server.domain.PayShellOpenChatDomain;
 import com.qingchi.base.model.chat.ChatDO;
 import com.qingchi.base.model.chat.ChatUserDO;
 import com.qingchi.base.model.chat.MessageReceiveDO;
-import com.qingchi.base.model.user.UserContactDO;
 import com.qingchi.base.model.user.UserDO;
 import com.qingchi.base.modelVO.ChatVO;
 import com.qingchi.base.repository.chat.ChatRepository;
@@ -25,7 +23,6 @@ import com.qingchi.server.model.ChatReadVO;
 import com.qingchi.server.model.ChatRemoveVO;
 import com.qingchi.server.model.ChatOpenVO;
 import com.qingchi.server.model.UserIdVO;
-import com.qingchi.server.model.serviceResult.CreateSingleChatResult;
 import com.qingchi.server.service.ChatService;
 import com.qingchi.server.service.ChatUserService;
 import org.slf4j.Logger;
@@ -163,37 +160,20 @@ public class ChatController {
         }
 
         //如果对方用户已经违规
-        if (receiveUser.getStatus().equals(CommonStatus.violation)) {
+        /*if (receiveUser.getStatus().equals(CommonStatus.violation)) {
             return new ResultVO<>("该用户已被封禁，无法开启会话，请刷新后重试");
-        }
+        }*/
 
         //进入页面之前，获取chat
         //查询是否之前已经创建过chat、
-        Optional<ChatUserDO> chatUserDOOptional = chatUserRepository.findFirstByUserIdAndReceiveUserId(user.getId(), receiveUser.getId());
-        ChatVO chat;
-        //如果创建过，则获取。返回
-        if (chatUserDOOptional.isPresent()) {
-            ChatUserDO chatUserDO = chatUserDOOptional.get();
-            Optional<ChatDO> chatDOOptional = chatRepository.findById(chatUserDO.getChatId());
-            chat = new ChatVO(chatDOOptional.get(), chatUserDO);
-            //如果没创建过，则创建，并返回
-        } else {
-            CreateSingleChatResult chatResult = chatService.createSingleChat(user, receiveUser.getId());
-            chat = new ChatVO(chatResult.getChat(), chatResult.getMineChatUser());
-        }
-
-        if (chat.getStatus().equals(CommonStatus.waitOpen)){
-            //查询对方是否关注了自己，只有未关注的情况，才能支付
-            Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(receiveUser.getId(), user.getId(), CommonStatus.normal);
-            if (followCount < 1) {
-                chat.setNeedPayOpen(true);
-            }
-        }
+        ChatVO chat = chatService.getSingleChatVO(user, receiveUser.getId());
 
         /*new ChatVO(chat);
         chat = chatUserDOOptional.map(chatUserDO -> new ChatVO(chatUserDO.getChat())).orElseGet(() -> );*/
         return new ResultVO<>(chat);
     }
+
+
 
 
     @Resource
