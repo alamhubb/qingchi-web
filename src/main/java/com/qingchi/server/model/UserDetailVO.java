@@ -259,7 +259,7 @@ public class UserDetailVO {
                 //查询出来chatUser，用来判断用户是否购买了。
 //                this.showBuyMsg = true;
                 //如果被对方关注了，
-                this.chat  = chatService.getSingleChatVO(mineUser, user.getId());
+                this.chat = chatService.getSingleChatVO(mineUser, user.getId());
             } else {
                 //未登录所有人都显示可关注
                 this.hasFollowed = false;

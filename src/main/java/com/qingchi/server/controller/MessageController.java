@@ -108,7 +108,7 @@ public class MessageController {
         }
         if (chatDO != null) {
             List<MessageDO> messageDOS = messageRepository.findTop30ByChatIdAndStatusInAndIdNotInOrderByCreateTimeDescIdDesc(chatDO.getId(), CommonStatus.otherCanSeeContentStatus, msgIds);
-            messageVOS = MessageVO.messageDOToVOS(messageDOS);
+            messageVOS = MessageVO.messageDOToVOS(messageDOS, user.getId());
         }
         return new ResultVO<>(messageVOS);
     }
