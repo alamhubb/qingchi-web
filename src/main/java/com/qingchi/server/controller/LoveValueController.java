@@ -50,7 +50,7 @@ public class LoveValueController {
         loveValueOrder.setEnable(success);
         loveValueOrder.setUserId(user.getId());
         loveValueOrder.setCreateTime(new Date());
-        loveValueOrder.setStatus(CommonStatus.normal);
+        loveValueOrder.setStatus(CommonStatus.enable);
         //没有成功观看，则只记录一下用户看了视频，没看完，方便今后统计数据
         if (!success) {
             loveValueOrder.setAward(false);
@@ -86,7 +86,7 @@ public class LoveValueController {
         loveValueOrder.setEnable(success);
         loveValueOrder.setUserId(user.getId());
         loveValueOrder.setCreateTime(new Date());
-        loveValueOrder.setStatus(CommonStatus.normal);
+        loveValueOrder.setStatus(CommonStatus.enable);
         //没有成功观看，则只记录一下用户看了视频，没看完，方便今后统计数据
         if (!success) {
             loveValueOrder.setAward(false);
@@ -120,6 +120,6 @@ public class LoveValueController {
         //获取当天0点
         Date zero = DateUtils.getTodayZeroDate();
         Date todayEnd = new Date(zero.getTime() + CommonConst.day);
-        return loveValueOrderRepository.countByUserIdAndStatusAndEnableAndAwardAndCreateTimeBetween(user.getId(), CommonStatus.normal, true, true, zero, todayEnd);
+        return loveValueOrderRepository.countByUserIdAndStatusAndEnableAndAwardAndCreateTimeBetween(user.getId(), CommonStatus.enable, true, true, zero, todayEnd);
     }
 }

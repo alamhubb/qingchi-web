@@ -32,7 +32,7 @@ public class CommentFactory {
         CommentDO comment = new CommentDO();
         comment.setNo(++commentNo);
         comment.setContent(addVO.getContent());
-        comment.setStatus(CommonStatus.normal);
+        comment.setStatus(CommonStatus.enable);
         comment.setReportContentType(ReportContentType.comment);
         comment.setHugNum(0);
         comment.setChildCommentNum(0);

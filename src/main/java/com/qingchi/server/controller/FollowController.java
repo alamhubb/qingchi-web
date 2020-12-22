@@ -37,11 +37,11 @@ public class FollowController {
     public ResultVO<Map<String, List<FollowUserVO>>> queryUserFollows(UserDO user) {
         Map<String, List<FollowUserVO>> map = new HashMap<>();
         //查询他的关注
-        List<FollowDO> followDOS = followRepository.findTop30ByUserIdAndStatusOrderByUpdateTimeDesc(user.getId(), CommonStatus.normal);
+        List<FollowDO> followDOS = followRepository.findTop30ByUserIdAndStatusOrderByUpdateTimeDesc(user.getId(), CommonStatus.enable);
         List<UserDO> userDOS = followDOS.stream().map(followDO -> UserUtils.get(followDO.getBeUserId())).collect(Collectors.toList());
         List<FollowUserVO> followUserVOS = userDOS.stream().map(userDO -> {
             //查看对方是否也关注了自己
-            Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(userDO.getId(), user.getId(), CommonStatus.normal);
+            Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(userDO.getId(), user.getId(), CommonStatus.enable);
             //默认显示已关注
             String followStatus = FollowConst.followed;
             //默认对方没有关注自己
@@ -54,11 +54,11 @@ public class FollowController {
         }).collect(Collectors.toList());
 
         //查询他的粉丝
-        List<FollowDO> fans = followRepository.findTop30ByUserIdAndStatusOrderByUpdateTimeDesc(user.getId(), CommonStatus.normal);
+        List<FollowDO> fans = followRepository.findTop30ByUserIdAndStatusOrderByUpdateTimeDesc(user.getId(), CommonStatus.enable);
         List<UserDO> fansUserDOS = fans.stream().map(followDO -> UserUtils.get(followDO.getUserId())).collect(Collectors.toList());
         List<FollowUserVO> fansUserVOS = fansUserDOS.stream().map(userDO -> {
             //查看自己是否关注了对方
-            Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(user.getId(), userDO.getId(), CommonStatus.normal);
+            Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(user.getId(), userDO.getId(), CommonStatus.enable);
             //默认显示关注
             String followStatus = FollowConst.follow;
             //如果自己关注了对方，就是互相关注
@@ -106,7 +106,7 @@ public class FollowController {
         if (followDOOptional.isPresent()) {
             followDO = followDOOptional.get();
             //已经关注
-            if (CommonStatus.normal.equals(followDO.getStatus())) {
+            if (CommonStatus.enable.equals(followDO.getStatus())) {
                 followDO.setStatus(CommonStatus.delete);
                 user.setFollowNum(user.getFollowNum() - 1);
                 beUserDO.setFansNum(beUserDO.getFansNum() - 1);

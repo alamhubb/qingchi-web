@@ -41,11 +41,11 @@ public class TagService {
             for (Integer tagId : tagIds) {
                 if (!ObjectUtils.isEmpty(tagId)) {
                     //查询启用的话题
-                    Optional<TagDO> optionalTagDO = tagRepository.findByIdAndStatus(tagId, CommonStatus.normal);
+                    Optional<TagDO> optionalTagDO = tagRepository.findByIdAndStatus(tagId, CommonStatus.enable);
                     //如果话题存在且可用
                     if (optionalTagDO.isPresent()) {
                         TagDO tagDO = optionalTagDO.get();
-                        if (!CommonStatus.normal.equals(tagDO.getStatus())) {
+                        if (!CommonStatus.enable.equals(tagDO.getStatus())) {
                             return new ResultVO<>("引用了不可使用的话题");
                         }
                         //次数加1

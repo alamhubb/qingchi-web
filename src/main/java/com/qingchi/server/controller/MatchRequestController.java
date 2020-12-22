@@ -59,7 +59,7 @@ public class MatchRequestController {
             QingLogger.logger.error("用户未绑定手机号还能调用后台发布功能，用户Id：{}", user.getId());
             return new ResultVO<>(ErrorMsg.bindPhoneNumCan);
         }
-        if (!CommonStatus.normal.equals(user.getStatus())) {
+        if (!CommonStatus.enable.equals(user.getStatus())) {
             return new ResultVO<>(ErrorMsg.userMaybeViolation);
         }
 
@@ -141,7 +141,7 @@ public class MatchRequestController {
             QingLogger.logger.error("用户未绑定手机号还能调用后台发布功能，用户Id：{}", user.getId());
             return new ResultVO<>(ErrorMsg.bindPhoneNumCan);
         }
-        if (!CommonStatus.normal.equals(user.getStatus())) {
+        if (!CommonStatus.enable.equals(user.getStatus())) {
             return new ResultVO<>(ErrorMsg.userMaybeViolation);
         }
         List<UserImgDO> userImgDOS = UserImgUtils.getImgs(user.getId());

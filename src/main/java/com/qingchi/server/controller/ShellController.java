@@ -22,7 +22,7 @@ public class ShellController {
 
     @PostMapping("queryShells")
     public ResultVO<List<ShellOrderVO>> queryShells(UserDO user) {
-        List<ShellOrderDO> shellOrderDOS = shellOrderRepository.findAllByUserIdAndStatusOrderByCreateTimeDesc(user.getId(), CommonStatus.normal);
+        List<ShellOrderDO> shellOrderDOS = shellOrderRepository.findAllByUserIdAndStatusOrderByCreateTimeDesc(user.getId(), CommonStatus.enable);
         return new ResultVO<>(shellOrderDOS.stream().map(ShellOrderVO::new).collect(Collectors.toList()));
     }
 }

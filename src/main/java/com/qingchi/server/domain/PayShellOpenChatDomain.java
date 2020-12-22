@@ -4,14 +4,12 @@ import com.qingchi.base.common.ResultVO;
 import com.qingchi.base.constant.*;
 import com.qingchi.base.model.chat.ChatDO;
 import com.qingchi.base.model.chat.ChatUserDO;
-import com.qingchi.base.model.user.UserContactDO;
 import com.qingchi.base.model.user.UserDO;
 import com.qingchi.base.modelVO.ChatVO;
 import com.qingchi.base.repository.chat.ChatRepository;
 import com.qingchi.base.repository.chat.ChatUserRepository;
 import com.qingchi.base.repository.follow.FollowRepository;
 import com.qingchi.base.utils.QingLogger;
-import com.qingchi.base.utils.UserUtils;
 import com.qingchi.server.service.ShellOrderService;
 import org.springframework.stereotype.Service;
 
@@ -77,20 +75,20 @@ public class PayShellOpenChatDomain {
         //chat改为开启
         //开启chat
         //你需要自己的chat为代开起
-        chatDO.setStatus(CommonStatus.normal);
+        chatDO.setStatus(CommonStatus.enable);
         chatDO.setUpdateTime(curDate);
         chatDO = chatRepository.save(chatDO);
 
 
         //更改状态返回
         //开启自己的chatUser
-        chatUserDO.setStatus(CommonStatus.normal);
+        chatUserDO.setStatus(CommonStatus.enable);
         chatUserDO.setUpdateTime(curDate);
         //自己的要在前台显示，需要有一个状态控制是否前台显示
         chatUserDO.setFrontShow(true);
 
         //开启对方的chatUser
-        receiveChatUserDO.setStatus(CommonStatus.normal);
+        receiveChatUserDO.setStatus(CommonStatus.enable);
         receiveChatUserDO.setUpdateTime(curDate);
         receiveChatUserDO.setFrontShow(true);
         if (needPayOpen) {
@@ -132,7 +130,7 @@ public class PayShellOpenChatDomain {
         //如果为空，则走创建逻辑,付费开启，chat直接开启
         ChatUserDO receiveChatUserDO = null;
         if (chatUserDO == null) {
-            chatDO = new ChatDO(ChatType.single, CommonStatus.normal);
+            chatDO = new ChatDO(ChatType.single, CommonStatus.enable);
             //生成chat
             chatUserDO = new ChatUserDO(chatDO, user.getId(), receiveUser.getId());
 
@@ -168,17 +166,17 @@ public class PayShellOpenChatDomain {
             //chat改为开启
             //开启chat
             //你需要自己的chat为代开起
-            chatDO.setStatus(CommonStatus.normal);
+            chatDO.setStatus(CommonStatus.enable);
             chatDO.setUpdateTime(curDate);
 
             //更改状态返回
             //开启自己的chatUser
-            chatUserDO.setStatus(CommonStatus.normal);
+            chatUserDO.setStatus(CommonStatus.enable);
             chatUserDO.setUpdateTime(curDate);
             //自己的要在前台显示，需要有一个状态控制是否前台显示
             chatUserDO.setFrontShow(true);
             //开启对方的chatUser
-            receiveChatUserDO.setStatus(CommonStatus.normal);
+            receiveChatUserDO.setStatus(CommonStatus.enable);
             receiveChatUserDO.setUpdateTime(curDate);
             receiveChatUserDO.setFrontShow(true);
         }

@@ -8,13 +8,11 @@ import com.qingchi.base.modelVO.ChatVO;
 import com.qingchi.base.constant.ChatType;
 import com.qingchi.base.constant.CommonStatus;
 import com.qingchi.base.model.user.UserDO;
-import com.qingchi.server.model.serviceResult.CreateSingleChatResult;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * @author qinkaiyuan
@@ -43,7 +41,7 @@ public class ChatUserService {
     //未登录的情况下查询官方chat，官方群聊
     public List<ChatVO> getChats() {
         //未登录的情况只插叙你官方的chats
-        List<ChatDO> chats1 = chatRepository.findByStatusAndTypeInOrderByTopFlagDescTopLevelAscUpdateTimeDesc(CommonStatus.normal, ChatType.systemChats);
+        List<ChatDO> chats1 = chatRepository.findByStatusAndTypeInOrderByTopFlagDescTopLevelAscUpdateTimeDesc(CommonStatus.enable, ChatType.systemChats);
         return ChatVO.chatDOToVOS(chats1);
     }
 }

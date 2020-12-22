@@ -29,7 +29,7 @@ public class IdCardVO {
 //        目前不需要身份证背面
 //        idCardDO.setBackIdCardImg(backIdCardImg);
         idCardDO.setCreateDate(new Date());
-        idCardDO.setStatus(CommonStatus.normal);
+        idCardDO.setStatus(CommonStatus.enable);
         return idCardDO;
     }
 }

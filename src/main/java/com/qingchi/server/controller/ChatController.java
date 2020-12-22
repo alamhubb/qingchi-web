@@ -77,7 +77,7 @@ public class ChatController {
     public ResultVO<?> readChatMessages(UserDO user, @RequestBody @Valid ChatReadVO chatVO) {
         if (user != null) {
             Long chatId = chatVO.getChatId() != null ? chatVO.getChatId() : chatVO.getChatUserId();
-            Optional<ChatDO> chatDOOptional = chatRepository.findFirstByIdAndStatus(chatId, CommonStatus.normal);
+            Optional<ChatDO> chatDOOptional = chatRepository.findFirstByIdAndStatus(chatId, CommonStatus.enable);
             if (!chatDOOptional.isPresent()) {
                 log.error("被攻击了，出现了不存在的消息:{}", chatVO.getChatId());
                 return new ResultVO<>("该聊天不存在");
@@ -85,7 +85,7 @@ public class ChatController {
             ChatDO chat = chatDOOptional.get();
             if (!chat.getType().equals(ChatType.system_group)) {
                 //查询用户是否有chat权限，并且chat正常
-                Optional<ChatUserDO> chatUserDOOptional = chatUserRepository.findFirstByChatIdAndUserIdAndStatus(chat.getId(), user.getId(), CommonStatus.normal);
+                Optional<ChatUserDO> chatUserDOOptional = chatUserRepository.findFirstByChatIdAndUserIdAndStatus(chat.getId(), user.getId(), CommonStatus.enable);
                 if (!chatUserDOOptional.isPresent()) {
                     log.error("用户已经被踢出来了，不具备给这个chat发送消息的权限");
                     //用户给自己被踢出来，或者自己删除的内容发消息。提示异常
@@ -214,7 +214,7 @@ public class ChatController {
         Integer receiveUserId = chatUserDO.getReceiveUserId();
 
         //查询对方是否关注了自己，只有未关注的情况，才能支付
-        Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(receiveUserId, chatUserDO.getUserId(), CommonStatus.normal);
+        Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(receiveUserId, chatUserDO.getUserId(), CommonStatus.enable);
 
         //小于1，需要付费支付
         Boolean dbNeedPayOpen = followCount < 1;
@@ -288,7 +288,7 @@ public class ChatController {
     @PostMapping("removeChat")
     public ResultVO<?> removeChat(UserDO user, @RequestBody @Valid @NotNull ChatRemoveVO chatVO) {
         Long chatId = chatVO.getChatId() != null ? chatVO.getChatId() : chatVO.getChatUserId();
-        Optional<ChatDO> chatDOOptional = chatRepository.findFirstByIdAndStatus(chatId, CommonStatus.normal);
+        Optional<ChatDO> chatDOOptional = chatRepository.findFirstByIdAndStatus(chatId, CommonStatus.enable);
         if (!chatDOOptional.isPresent()) {
             log.error("被攻击了，出现了不存在的消息:{}", chatId);
             return new ResultVO<>("该聊天不存在");
@@ -298,7 +298,7 @@ public class ChatController {
             return new ResultVO<>("暂时无法删除官方群聊");
         }
         //查询用户是否有chat权限，并且chat正常
-        Optional<ChatUserDO> chatUserDOOptional = chatUserRepository.findFirstByChatIdAndUserIdAndStatus(chat.getId(), user.getId(), CommonStatus.normal);
+        Optional<ChatUserDO> chatUserDOOptional = chatUserRepository.findFirstByChatIdAndUserIdAndStatus(chat.getId(), user.getId(), CommonStatus.enable);
         if (!chatUserDOOptional.isPresent()) {
             log.error("用户已经被踢出来了，不具备给这个chat发送消息的权限");
             //用户给自己被踢出来，或者自己删除的内容发消息。提示异常

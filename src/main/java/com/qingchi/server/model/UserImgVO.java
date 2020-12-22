@@ -50,7 +50,7 @@ public class UserImgVO {
         userImgDO.setQuality(this.getQuality());
         userImgDO.setSize(this.size);
         userImgDO.setUserId(user.getId());
-        userImgDO.setStatus(CommonStatus.normal);
+        userImgDO.setStatus(CommonStatus.enable);
         userImgDO.setCreateTime(new Date());
         userImgDO.setContent(AppConfigConst.img_content);
         userImgDO.setReportContentType(ReportContentType.userImg);

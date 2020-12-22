@@ -1,6 +1,5 @@
 package com.qingchi.server.service;
 
-import com.qingchi.base.constant.ChatStatus;
 import com.qingchi.base.constant.CommonStatus;
 import com.qingchi.base.model.chat.ChatDO;
 import com.qingchi.base.repository.chat.ChatRepository;
@@ -8,7 +7,6 @@ import com.qingchi.base.model.chat.ChatUserDO;
 import com.qingchi.base.repository.chat.ChatUserRepository;
 import com.qingchi.base.modelVO.ChatVO;
 import com.qingchi.base.constant.ChatType;
-import com.qingchi.base.constant.ChatUserStatus;
 import com.qingchi.base.model.user.UserDO;
 import com.qingchi.base.repository.follow.FollowRepository;
 import com.qingchi.server.model.serviceResult.CreateSingleChatResult;
@@ -48,7 +46,7 @@ public class ChatService {
 
         if (chat.getStatus().equals(CommonStatus.waitOpen)){
             //查询对方是否关注了自己，只有未关注的情况，才能支付
-            Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(receiveUserId, user.getId(), CommonStatus.normal);
+            Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(receiveUserId, user.getId(), CommonStatus.enable);
             if (followCount < 1) {
                 chat.setNeedPayOpen(true);
             }

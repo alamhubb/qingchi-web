@@ -67,7 +67,7 @@ public class IdentityController {
             if (authFlag) {
                 //设置为已认证
                 user.setIsSelfAuth(true);
-                identityImgDO.setStatus(CommonStatus.normal);
+                identityImgDO.setStatus(CommonStatus.enable);
                 user.setUpdateTime(curDate);
 
                 //userimg不为空

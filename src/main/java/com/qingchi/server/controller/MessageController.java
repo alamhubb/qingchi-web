@@ -29,6 +29,7 @@ import com.qingchi.base.utils.QingLogger;
 import com.qingchi.server.model.MessageAddVO;
 import com.qingchi.server.model.MessageQueryVO;
 import com.qingchi.server.model.MsgDeleteVO;
+import com.qingchi.server.verify.ChatVerify;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,6 +74,8 @@ public class MessageController {
     private ReportService reportService;
     @Resource
     private ReportDomain reportDomain;
+    @Resource
+    private ChatVerify chatVerify;
 
     /**
      * toDO 这里有问题，都统一用的 msgid
@@ -88,15 +91,30 @@ public class MessageController {
         //msg id也要统一，举报的时候不知道是哪个
         List<Long> msgIds = queryVO.getMsgIds();
         ChatDO chatDO = null;
+        ChatUserDO chatUserDO = null;
+
+
+        //前台传入chatId，
+        //校验chatId，对应的chatDO是否存在，
+        //校验chat下是否存在此user
+
+
+        //如果穿chatId，需要获取chatUserId，根据chatUserId获取msg
+
+        //chatId操作，和user获取chatUser,判断是否存在
+
+        //chatUserid，获取，判断user是否对应
+
+        //查询所有messageReceive
         //前台没传这个值
+        //什么状态的可以查询？chat的状态列表有哪些，各代表什么业务
+        //chatUser呢
         if (chatId == null) {
             if (msgIds.size() > 0) {
                 Optional<MessageDO> messageDOOptional = messageRepository.findById(msgIds.get(0));
                 if (messageDOOptional.isPresent()) {
-                    Optional<ChatDO> chatDOOptional = chatRepository.findById(messageDOOptional.get().getChatId());
-                    if (chatDOOptional.isPresent()) {
-                        chatDO = chatDOOptional.get();
-                    }
+                    chatId = messageDOOptional.get().getChatId();
+                    ResultVO<ChatUserDO> resultVO = chatVerify.checkChatIdAndUserIdExist(chatId, user.getId());
 
                 }
             }
@@ -131,7 +149,7 @@ public class MessageController {
         }
 
 
-        Optional<ChatDO> chatDOOptional = chatRepository.findFirstByIdAndStatus(chatId, CommonStatus.normal);
+        Optional<ChatDO> chatDOOptional = chatRepository.findFirstByIdAndStatus(chatId, CommonStatus.enable);
         if (!chatDOOptional.isPresent()) {
             log.error("被攻击了，出现了不存在的消息:{}", chatId);
             return new ResultVO<>("该聊天不存在");
@@ -175,7 +193,7 @@ public class MessageController {
             //如果是官方通知和
             //如果为官方群聊，则所有人都可以发送内容
             //查询用户是否有权限往chat中发送内容
-            Optional<ChatUserDO> chatUserDOOptional = chatUserRepository.findFirstByChatIdAndUserIdAndStatus(chatId, user.getId(), CommonStatus.normal);
+            Optional<ChatUserDO> chatUserDOOptional = chatUserRepository.findFirstByChatIdAndUserIdAndStatus(chatId, user.getId(), CommonStatus.enable);
             if (!chatUserDOOptional.isPresent()) {
                 log.error("用户已经被踢出来了，不具备给这个chat发送消息的权限");
                 //用户给自己被踢出来，或者自己删除的内容发消息。提示异常
@@ -193,7 +211,7 @@ public class MessageController {
             List<NotifyDO> notifies = new ArrayList<>();
             //有权限，则给chat中的所有用户发送内容
 
-            List<ChatUserDO> chatUserDOS = chatUserRepository.findByChatIdAndStatus(chatId, CommonStatus.normal);
+            List<ChatUserDO> chatUserDOS = chatUserRepository.findByChatIdAndStatus(chatId, CommonStatus.enable);
             //包含自己，起码要有两个人
             if (chatUserDOS.size() <= 1) {
                 //用户给自己被踢出来，或者自己删除的内容发消息。提示异常
@@ -207,10 +225,11 @@ public class MessageController {
                 //如果为匹配chat，且为待匹配状态
                 if (ChatType.match.equals(chat.getType()) && CommonStatus.waitMatch.equals(chat.getMatchStatus()) && chatUserDO.getStatus().equals(CommonStatus.waitMatch)) {
                     //则将用户的chat改为匹配成功
-                    chatUserDO.setStatus(CommonStatus.normal);
+                    chatUserDO.setStatus(CommonStatus.enable);
                 }
-                MessageReceiveDO messageReceiveDO = new MessageReceiveDO(chatUserDO.getId(), user.getId(), chatUserDO.getReceiveUserId(), message.getId());
+                //获取当起chatUser的userId
                 Integer chatUserId = chatUserDO.getUserId();
+                MessageReceiveDO messageReceiveDO = new MessageReceiveDO(chatUserDO.getId(), user.getId(), chatUserId, message.getId());
                 //自己的话不发送通知，自己的话也要构建消息，要不看不见，因为读是读这个表
                 if (chatUserId.equals(user.getId())) {
                     messageReceiveDO.setIsMine(true);
@@ -219,7 +238,8 @@ public class MessageController {
                 } else {
                     //别人的chatUser，要增加未读，自己刚发的消息，别人肯定还没看
                     chatUserDO.setUnreadNum(chatUserDO.getUnreadNum() + 1);
-                    NotifyDO notifyDO = notifyRepository.save(new NotifyDO(messageReceiveDORepository.save(messageReceiveDO)));
+                    mineMessageUser = messageReceiveDORepository.save(messageReceiveDO);
+                    NotifyDO notifyDO = notifyRepository.save(new NotifyDO(mineMessageUser));
                     notifies.add(notifyDO);
                 }
             }

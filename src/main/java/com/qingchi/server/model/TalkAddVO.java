@@ -37,7 +37,7 @@ public class TalkAddVO {
         talkDO.setCommentNum(0);
         talkDO.setReportNum(0);
         talkDO.setGlobalTop(0);
-        talkDO.setStatus(CommonStatus.normal);
+        talkDO.setStatus(CommonStatus.enable);
         //已在外层经过校验
 
         talkDO.setUserId(user.getId());

@@ -169,7 +169,7 @@ public class TalkVO {
             }
             //他人需要判断
             if (!mineUser.getId().equals(talkUser.getId())) {
-                Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(mineUser.getId(), talkUser.getId(), CommonStatus.normal);
+                Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(mineUser.getId(), talkUser.getId(), CommonStatus.enable);
                 this.hasFollowed = followCount > 0;
             } else {
                 //为自己不可关注

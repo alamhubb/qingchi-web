@@ -1,7 +1,6 @@
 package com.qingchi.server.model;
 
 import com.qingchi.base.constant.ExpenseType;
-import com.qingchi.base.model.chat.ChatUserDO;
 import com.qingchi.base.modelVO.ChatVO;
 import com.qingchi.base.redis.DistrictVO;
 import com.qingchi.base.repository.chat.ChatUserRepository;
@@ -218,7 +217,7 @@ public class UserDetailVO {
                         //如果为查看别人的详情，则会带着自己的用户信息
                         if (mineUser != null) {
                             Optional<UserContactDO> userContactDOOptional = userContactRepository.findFirstByUserIdAndBeUserIdAndStatusAndType(
-                                    mineUser.getId(), user.getId(), CommonStatus.normal, ExpenseType.contact);
+                                    mineUser.getId(), user.getId(), CommonStatus.enable, ExpenseType.contact);
                             if (userContactDOOptional.isPresent()) {
                                 //这里需要确认用户是否已获取过对方的联系方式
                                 this.contactAccount = contactAccount;
@@ -251,10 +250,10 @@ public class UserDetailVO {
             this.wealthLevel = user.getWealthLevel();
         } else {
             if (mineUser != null && !mineUser.getId().equals(user.getId())) {
-                Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(mineUser.getId(), user.getId(), CommonStatus.normal);
+                Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(mineUser.getId(), user.getId(), CommonStatus.enable);
                 this.hasFollowed = followCount > 0;
                 //查询对方是否关注了自己
-                Integer beFollowCount = followRepository.countByUserIdAndBeUserIdAndStatus(user.getId(), mineUser.getId(), CommonStatus.normal);
+                Integer beFollowCount = followRepository.countByUserIdAndBeUserIdAndStatus(user.getId(), mineUser.getId(), CommonStatus.enable);
                 this.beFollow = beFollowCount > 0;
                 //查询出来chatUser，用来判断用户是否购买了。
 //                this.showBuyMsg = true;

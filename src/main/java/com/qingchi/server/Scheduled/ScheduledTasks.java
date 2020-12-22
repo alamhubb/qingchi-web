@@ -61,7 +61,7 @@ public class ScheduledTasks {
     @Scheduled(fixedRate = 600000)
     public void updateUserStatus() {
         Date curDate = new Date();
-        Integer count = userRepository.updateUserVioStatus(CommonStatus.violation, CommonStatus.normal, curDate);
+        Integer count = userRepository.updateUserVioStatus(CommonStatus.violation, CommonStatus.enable, curDate);
         QingLogger.logger.info("今日时间{}，解封用户数量：{}", curDate, count);
     }
 

@@ -267,7 +267,7 @@ public class AppInitController {
         //appConfig
         appInitData.setAppConfig(AppConfigConst.appConfigMap);
         //homeSwipers
-        List<HomeSwiperDO> homeSwiperDOS = homeSwiperRepository.findAllByStatusOrderByTopLevelAscIdDesc(CommonStatus.normal);
+        List<HomeSwiperDO> homeSwiperDOS = homeSwiperRepository.findAllByStatusOrderByTopLevelAscIdDesc(CommonStatus.enable);
         appInitData.setHomeSwipers(homeSwiperDOS.stream().map(HomeSwiperVO::new).collect(Collectors.toList()));
         return new ResultVO<>(appInitData);
     }
@@ -391,7 +391,7 @@ public class AppInitController {
         //reportTypes
         appInitData.setReportTypes(ViolateType.frontShowReportTypes);
         //homeSwipers
-        List<HomeSwiperDO> homeSwiperDOS = homeSwiperRepository.findAllByStatusOrderByTopLevelAscIdDesc(CommonStatus.normal);
+        List<HomeSwiperDO> homeSwiperDOS = homeSwiperRepository.findAllByStatusOrderByTopLevelAscIdDesc(CommonStatus.enable);
         appInitData.setHomeSwipers(homeSwiperDOS.stream().map(HomeSwiperVO::new).collect(Collectors.toList()));
         //districts
         List<DistrictVO> districtVOS = districtRedis.getHotDistricts();

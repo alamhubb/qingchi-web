@@ -2,7 +2,6 @@ package com.qingchi.server.model;
 
 import com.qingchi.base.constant.CommonStatus;
 import com.qingchi.base.model.talk.TagDO;
-import com.qingchi.base.model.talk.TagTypeDO;
 import com.qingchi.base.model.user.UserDO;
 import lombok.Data;
 
@@ -28,7 +27,7 @@ public class TagAddVO {
         tagDO.setName(tagName);
         tagDO.setAvatar("https://cdxapp-1257733245.cos.ap-beijing.myqcloud.com/qingchi/static/qclogo.jpg!avatar");
         tagDO.setDescription(description);
-        tagDO.setStatus(CommonStatus.normal);
+        tagDO.setStatus(CommonStatus.enable);
         tagDO.setCount(0);
         tagDO.setTalkCount(0);
         tagDO.setCreateTime(new Date());
