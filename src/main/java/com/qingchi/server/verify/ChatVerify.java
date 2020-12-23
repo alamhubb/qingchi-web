@@ -18,13 +18,12 @@ public class ChatVerify {
     private ChatUserRepository chatUserRepository;
 
     public ResultVO<ChatUserDO> checkChatIdAndUserIdExist(Long chatId, Integer userId) {
-        ChatUserDO chatUserDO = null;
-
-        Optional<ChatDO> chatDOOptional = chatRepository.findById(chatId);
+        Optional<ChatUserDO> chatUserDOOptional = chatUserRepository.findFirstByChatIdAndUserId(chatId, userId);
+        return chatUserDOOptional.map(ResultVO::new).orElseGet(() -> new ResultVO<>("您无法访问此会话"));
+        /*Optional<ChatDO> chatDOOptional = chatRepository.findById(chatId);
         if (chatDOOptional.isPresent()) {
             ChatDO chatDO = chatDOOptional.get();
-            Optional<ChatUserDO> chatUserDOOptional = chatUserRepository.findFirstByChatIdAndUserId(chatId, userId);
 
-        }
+        }*/
     }
 }

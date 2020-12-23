@@ -1,7 +1,6 @@
 package com.qingchi.server.service;
 
 import com.qingchi.base.constant.ChatType;
-import com.qingchi.base.constant.ChatUserStatus;
 import com.qingchi.base.constant.CommonStatus;
 import com.qingchi.base.constant.MessageType;
 import com.qingchi.base.model.chat.ChatDO;

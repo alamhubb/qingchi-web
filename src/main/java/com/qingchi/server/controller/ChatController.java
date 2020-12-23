@@ -304,6 +304,7 @@ public class ChatController {
             //用户给自己被踢出来，或者自己删除的内容发消息。提示异常
             return new ResultVO<>("聊天已关闭，请刷新后重试");
         }
+
         //查询chat
         chat.setStatus(CommonStatus.delete);
         chatRepository.save(chat);

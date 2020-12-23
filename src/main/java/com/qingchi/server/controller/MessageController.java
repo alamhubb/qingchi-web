@@ -109,22 +109,25 @@ public class MessageController {
         //前台没传这个值
         //什么状态的可以查询？chat的状态列表有哪些，各代表什么业务
         //chatUser呢
+
+
+        //1,从chat页面进入，已有chat
+
+
         if (chatId == null) {
             if (msgIds.size() > 0) {
                 Optional<MessageDO> messageDOOptional = messageRepository.findById(msgIds.get(0));
                 if (messageDOOptional.isPresent()) {
                     chatId = messageDOOptional.get().getChatId();
-                    ResultVO<ChatUserDO> resultVO = chatVerify.checkChatIdAndUserIdExist(chatId, user.getId());
-
                 }
             }
-        } else {
-            Optional<ChatDO> chatDOOptional = chatRepository.findById(chatId);
-            if (chatDOOptional.isPresent()) {
-                chatDO = chatDOOptional.get();
-            }
         }
-        if (chatDO != null) {
+        ResultVO<ChatUserDO> resultVO = chatVerify.checkChatIdAndUserIdExist(chatId, user.getId());
+        if (resultVO.hasError()) {
+            return new ResultVO<>(resultVO);
+        }
+        chatUserDO = resultVO.getData();
+        if (chatUserDO != null) {
             List<MessageDO> messageDOS = messageRepository.findTop30ByChatIdAndStatusInAndIdNotInOrderByCreateTimeDescIdDesc(chatDO.getId(), CommonStatus.otherCanSeeContentStatus, msgIds);
             messageVOS = MessageVO.messageDOToVOS(messageDOS, user.getId());
         }
