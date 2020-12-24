@@ -1,6 +1,7 @@
 package com.qingchi.server.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.qingchi.base.constant.status.MessageReceiveStatus;
 import com.qingchi.base.domain.ReportDomain;
 import com.qingchi.base.model.chat.ChatDO;
 import com.qingchi.base.repository.chat.ChatRepository;
@@ -69,7 +70,7 @@ public class MessageController {
     @Resource
     private ChatUserRepository chatUserRepository;
     @Resource
-    private MessageReceiveRepository messageReceiveDORepository;
+    private MessageReceiveRepository messageReceiveRepository;
     @Resource
     private ReportService reportService;
     @Resource
@@ -128,8 +129,8 @@ public class MessageController {
         }
         chatUserDO = resultVO.getData();
         if (chatUserDO != null) {
-            List<MessageDO> messageDOS = messageRepository.findTop30ByChatIdAndStatusInAndIdNotInOrderByCreateTimeDescIdDesc(chatDO.getId(), CommonStatus.otherCanSeeContentStatus, msgIds);
-            messageVOS = MessageVO.messageDOToVOS(messageDOS, user.getId());
+            List<MessageReceiveDO> messageDOS = messageReceiveRepository.findTop30ByChatUserIdAndStatusAndMessageIdNotInOrderByIdDesc(chatUserDO.getId(), MessageReceiveStatus.enable, msgIds);
+            messageVOS = MessageVO.messageReceiveDOToVOS(messageDOS);
         }
         return new ResultVO<>(messageVOS);
     }
@@ -232,16 +233,16 @@ public class MessageController {
                 }
                 //获取当起chatUser的userId
                 Integer chatUserId = chatUserDO.getUserId();
-                MessageReceiveDO messageReceiveDO = new MessageReceiveDO(chatUserDO.getId(), user.getId(), chatUserId, message.getId());
+                MessageReceiveDO messageReceiveDO = new MessageReceiveDO(chatUserDO.getId(), user.getId(), chatUserId, message);
                 //自己的话不发送通知，自己的话也要构建消息，要不看不见，因为读是读这个表
                 if (chatUserId.equals(user.getId())) {
                     messageReceiveDO.setIsMine(true);
                     messageReceiveDO.setIsRead(true);
-                    mineMessageUser = messageReceiveDORepository.save(messageReceiveDO);
+                    mineMessageUser = messageReceiveRepository.save(messageReceiveDO);
                 } else {
                     //别人的chatUser，要增加未读，自己刚发的消息，别人肯定还没看
                     chatUserDO.setUnreadNum(chatUserDO.getUnreadNum() + 1);
-                    mineMessageUser = messageReceiveDORepository.save(messageReceiveDO);
+                    mineMessageUser = messageReceiveRepository.save(messageReceiveDO);
                     NotifyDO notifyDO = notifyRepository.save(new NotifyDO(mineMessageUser));
                     notifies.add(notifyDO);
                 }
@@ -250,7 +251,7 @@ public class MessageController {
             //保存message
             notifyService.sendNotifies(notifies, user);
             //只需要返回自己的
-            return new ResultVO<>(new MessageVO(mineMessageUser, message));
+            return new ResultVO<>(new MessageVO(mineMessageUser));
         }
     }
 
