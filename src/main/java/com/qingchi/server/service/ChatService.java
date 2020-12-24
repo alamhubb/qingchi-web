@@ -47,8 +47,8 @@ public class ChatService {
         if (chat.getStatus().equals(CommonStatus.waitOpen)){
             //查询对方是否关注了自己，只有未关注的情况，才能支付
             Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(receiveUserId, user.getId(), CommonStatus.enable);
-            if (followCount < 1) {
-                chat.setNeedPayOpen(true);
+            if (followCount > 0) {
+                chat.setNeedPayOpen(false);
             }
         }
         return chat;
