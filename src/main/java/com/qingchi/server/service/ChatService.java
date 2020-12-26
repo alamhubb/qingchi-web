@@ -30,21 +30,22 @@ public class ChatService {
     @Resource
     FollowRepository followRepository;
 
+    //获取私聊的chat
     public ChatVO getSingleChatVO(UserDO user, Integer receiveUserId) {
         Optional<ChatUserDO> chatUserDOOptional = chatUserRepository.findFirstByUserIdAndReceiveUserId(user.getId(), receiveUserId);
         ChatVO chat;
         //如果创建过，则获取。返回
         if (chatUserDOOptional.isPresent()) {
             ChatUserDO chatUserDO = chatUserDOOptional.get();
-            Optional<ChatDO> chatDOOptional = chatRepository.findById(chatUserDO.getChatId());
-            chat = new ChatVO(chatDOOptional.get(), chatUserDO);
+//            Optional<ChatDO> chatDOOptional = chatRepository.findById(chatUserDO.getChatId());
+            chat = new ChatVO(chatUserDO.getChat(), chatUserDO);
             //如果没创建过，则创建，并返回
         } else {
             CreateSingleChatResult chatResult = this.createSingleChat(user, receiveUserId);
             chat = new ChatVO(chatResult.getChat(), chatResult.getMineChatUser());
         }
 
-        if (chat.getStatus().equals(CommonStatus.waitOpen)){
+        if (chat.getStatus().equals(CommonStatus.waitOpen)) {
             //查询对方是否关注了自己，只有未关注的情况，才能支付
             Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(receiveUserId, user.getId(), CommonStatus.enable);
             if (followCount > 0) {

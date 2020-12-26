@@ -122,7 +122,7 @@ public class PayShellOpenChatDomain {
     }
 
     //对应的之前的在个人详情页面开启
-    @Transactional
+    /*@Transactional
     public ResultVO<ChatVO> payShellOpenChatOnUserDetail(UserDO user, UserDO receiveUser, ChatDO chatDO, ChatUserDO chatUserDO) {
         //肯定不能通过 可用状态查询是否显示，
         //要有一个状态判断是否在前台显示，因为有时候开启了，但是前台不显示。你被对方开启
@@ -197,5 +197,5 @@ public class PayShellOpenChatDomain {
         ChatVO chatVO = new ChatVO(chatDO, chatUserDO);
         //需要对方的用户名，昵称。会话未开启
         return new ResultVO<>(chatVO);
-    }
+    }*/
 }

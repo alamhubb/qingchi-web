@@ -1,5 +1,6 @@
 package com.qingchi.server.service;
 
+import com.qingchi.base.constant.status.ChatUserStatus;
 import com.qingchi.base.model.chat.ChatDO;
 import com.qingchi.base.repository.chat.ChatRepository;
 import com.qingchi.base.model.chat.ChatUserDO;
@@ -29,10 +30,7 @@ public class ChatUserService {
     public List<ChatVO> getChats(UserDO user) {
         //未登录的情况只插叙你官方的chats
         List<ChatVO> chatVOS = getChats();
-        /*List<ChatUserDO> chats2 = chatUserRepository.
-                findByChatTypeNotInAndChatStatusAndUserIdAndStatusOrderByTopFlagDescChatTopLevelAscUpdateTimeDesc(
-                        ChatType.systemChats, CommonStatus.normal, user.getId(), CommonStatus.normal);*/
-        List<ChatUserDO> chats2 = new ArrayList<>();
+        List<ChatUserDO> chats2 = chatUserRepository.findByUserIdAndStatusAndFrontShowTrueOrderByTopFlagDescUpdateTimeDesc(user.getId(), ChatUserStatus.enable);
         List<ChatVO> chatVOS2 = ChatVO.chatUserDOToVOS(chats2);
         chatVOS.addAll(chatVOS2);
         return chatVOS;
@@ -41,7 +39,7 @@ public class ChatUserService {
     //未登录的情况下查询官方chat，官方群聊
     public List<ChatVO> getChats() {
         //未登录的情况只插叙你官方的chats
-        List<ChatDO> chats1 = chatRepository.findByStatusAndTypeInOrderByTopFlagDescTopLevelAscUpdateTimeDesc(CommonStatus.enable, ChatType.systemChats);
+        List<ChatDO> chats1 = chatRepository.findByStatusAndTypeInOrderByTopFlagDescTopLevelAscUpdateTimeDesc(ChatUserStatus.enable, ChatType.systemChats);
         return ChatVO.chatDOToVOS(chats1);
     }
 }
