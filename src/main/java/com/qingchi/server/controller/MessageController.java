@@ -242,11 +242,12 @@ public class MessageController {
                 } else {
                     //别人的chatUser，要增加未读，自己刚发的消息，别人肯定还没看
                     chatUserDO.setUnreadNum(chatUserDO.getUnreadNum() + 1);
-                    mineMessageUser = messageReceiveRepository.save(messageReceiveDO);
-                    NotifyDO notifyDO = notifyRepository.save(new NotifyDO(mineMessageUser));
+                    MessageReceiveDO messageReceiveDO1 = messageReceiveRepository.save(messageReceiveDO);
+                    NotifyDO notifyDO = notifyRepository.save(new NotifyDO(messageReceiveDO1));
                     notifies.add(notifyDO);
                 }
             }
+            chatUserRepository.saveAll(chatUserDOS);
             notifyRepository.saveAll(notifies);
             //保存message
             notifyService.sendNotifies(notifies, user);
