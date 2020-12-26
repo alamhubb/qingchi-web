@@ -53,6 +53,9 @@ public class UserAuthInterceptor implements HandlerInterceptor {
         }*/
         UserDO user = UserUtils.getUserByDB();
 
+        String uri = req.getRequestURI();
+        System.out.println("uri:" + uri);
+
         if ((req.getMethod().equals(RequestMethod.OPTIONS.name())
                 || req.getRequestURI().equals("/")
                 || req.getRequestURI().contains("test")
