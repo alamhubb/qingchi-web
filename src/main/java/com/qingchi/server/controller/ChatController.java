@@ -4,6 +4,7 @@ import com.qingchi.base.common.ResultVO;
 import com.qingchi.base.constant.ChatType;
 import com.qingchi.base.constant.CommonStatus;
 import com.qingchi.base.constant.ErrorCode;
+import com.qingchi.base.constant.status.MessageStatus;
 import com.qingchi.base.utils.UserUtils;
 import com.qingchi.server.domain.PayShellOpenChatDomain;
 import com.qingchi.base.model.chat.ChatDO;
@@ -76,13 +77,14 @@ public class ChatController {
     @PostMapping("readChat")
     public ResultVO<?> readChatMessages(UserDO user, @RequestBody @Valid ChatReadVO chatVO) {
         if (user != null) {
-            Long chatId = chatVO.getChatId() != null ? chatVO.getChatId() : chatVO.getChatUserId();
+            Long chatId = chatVO.getChatId();
             Optional<ChatDO> chatDOOptional = chatRepository.findFirstByIdAndStatus(chatId, CommonStatus.enable);
             if (!chatDOOptional.isPresent()) {
                 log.error("被攻击了，出现了不存在的消息:{}", chatVO.getChatId());
                 return new ResultVO<>("该聊天不存在");
             }
             ChatDO chat = chatDOOptional.get();
+            //为什么判断非系统组别
             if (!chat.getType().equals(ChatType.system_group)) {
                 //查询用户是否有chat权限，并且chat正常
                 Optional<ChatUserDO> chatUserDOOptional = chatUserRepository.findFirstByChatIdAndUserIdAndStatus(chat.getId(), user.getId(), CommonStatus.enable);
@@ -98,12 +100,13 @@ public class ChatController {
                 ChatUserDO chatUserDb = chatUserDOOptional.get();
                 //全部已读
                 chatUserDb.setUnreadNum(0);
+                chatUserDb.setUpdateTime(new Date());
                 chatUserRepository.save(chatUserDb);
                 //toDO 这里需要细想怎么个逻辑
                 //需要将chatUser的未读数量更新一下
 //            messageReceiveDORepository.updateMessageReceiveRead(chatUserDb, readVO.getMessageIds());
-//                List<MessageReceiveDO> messageReceiveDOS = messageReceiveDORepository.findByChatUserIdAndMessageStatusInAndStatusAndIsReadFalseAndIdInOrderByCreateTimeDescIdDesc(chatUserDb, CommonStatus.otherCanSeeContentStatus, CommonStatus.normal, chatVO.getMessageIds());
-                List<MessageReceiveDO> messageReceiveDOS = new ArrayList<>();
+                List<MessageReceiveDO> messageReceiveDOS = messageReceiveDORepository.findByChatUserIdAndStatusAndIsReadFalse(chatUserDb.getId(), MessageStatus.enable);
+//                List<MessageReceiveDO> messageReceiveDOS = new ArrayList<>();
                 //把具体的每一条改为已读
                 if (messageReceiveDOS.size() > 0) {
                     Date curDate = new Date();
@@ -172,8 +175,6 @@ public class ChatController {
         chat = chatUserDOOptional.map(chatUserDO -> new ChatVO(chatUserDO.getChat())).orElseGet(() -> );*/
         return new ResultVO<>(chat);
     }
-
-
 
 
     @Resource
