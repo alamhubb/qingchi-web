@@ -162,33 +162,33 @@ public class UserDetailVO {
         this(user, isMine, null);
     }
 
-    public UserDetailVO(UserDO user, Boolean isMine, UserDO mineUser) {
+    public UserDetailVO(UserDO beSeeUser, Boolean isMine, UserDO mineUser) {
         this.isMine = isMine;
         //toDO 查询mine的时候显示手机号，出生年月，别人详情时后台就控制不返回此类信息
-        this.id = user.getId();
-        this.nickname = StringUtils.substring(user.getNickname(), 0, 6);
-        this.gender = user.getGender();
-        this.location = user.getLocation();
-        this.age = user.getAge();
+        this.id = beSeeUser.getId();
+        this.nickname = StringUtils.substring(beSeeUser.getNickname(), 0, 6);
+        this.gender = beSeeUser.getGender();
+        this.location = beSeeUser.getLocation();
+        this.age = beSeeUser.getAge();
         //满分10W /1千，得到百分之颜值分
-        this.faceRatio = (int) Math.ceil((double) user.getFaceRatio() / MatchConstants.FACE_RATIO_BASE_MULTIPLE);
+        this.faceRatio = (int) Math.ceil((double) beSeeUser.getFaceRatio() / MatchConstants.FACE_RATIO_BASE_MULTIPLE);
         //todo 这里可以修改为用户存着LIst《userImdId》然后每次不需要连表查询，只根据id查找就行
-        List<UserImgDO> imgDOS = userImgRepository.findTop3ByUserIdAndStatusInOrderByCreateTimeDesc(user.getId(), CommonStatus.otherCanSeeContentStatus);
+        List<UserImgDO> imgDOS = userImgRepository.findTop3ByUserIdAndStatusInOrderByCreateTimeDesc(beSeeUser.getId(), CommonStatus.otherCanSeeContentStatus);
         this.imgs = UserImgVO.userImgDOToVOS(imgDOS);
-        this.onlineFlag = user.getOnlineFlag();
-        this.lastOnlineTime = user.getLastOnlineTime();
-        this.vipFlag = user.getVipFlag();
-        this.avatar = user.getAvatar();
-        this.fansNum = user.getFansNum();
-        this.loveValue = user.getLoveValue();
-        this.justiceValue = user.getJusticeValue();
-        this.userType = user.getType();
-        this.isSelfAuth = user.getIsSelfAuth();
+        this.onlineFlag = beSeeUser.getOnlineFlag();
+        this.lastOnlineTime = beSeeUser.getLastOnlineTime();
+        this.vipFlag = beSeeUser.getVipFlag();
+        this.avatar = beSeeUser.getAvatar();
+        this.fansNum = beSeeUser.getFansNum();
+        this.loveValue = beSeeUser.getLoveValue();
+        this.justiceValue = beSeeUser.getJusticeValue();
+        this.userType = beSeeUser.getType();
+        this.isSelfAuth = beSeeUser.getIsSelfAuth();
 //        this.inviteCode = user.getInviteCode();
 //        this.yearVipFlag = user.getYearVipFlag();
 //        this.registerInviteUser = new MatchUserVO(user.getRegisterInviteUser());
 //        this.qcb = user.getQcb();
-        Optional<UserDetailDO> optionalUserDetailDO = userDetailRepository.findFirstOneByUserId(user.getId());
+        Optional<UserDetailDO> optionalUserDetailDO = userDetailRepository.findFirstOneByUserId(beSeeUser.getId());
         optionalUserDetailDO.ifPresent(userDetailDO -> {
             //this.talkQueryDistrict = new DistrictVO(userDetailDO.getTalkQueryDistrict());
             this.wxAccount = userDetailDO.getWxAccount();
@@ -217,7 +217,7 @@ public class UserDetailVO {
                         //如果为查看别人的详情，则会带着自己的用户信息
                         if (mineUser != null) {
                             Optional<UserContactDO> userContactDOOptional = userContactRepository.findFirstByUserIdAndBeUserIdAndStatusAndType(
-                                    mineUser.getId(), user.getId(), CommonStatus.enable, ExpenseType.contact);
+                                    mineUser.getId(), beSeeUser.getId(), CommonStatus.enable, ExpenseType.contact);
                             if (userContactDOOptional.isPresent()) {
                                 //这里需要确认用户是否已获取过对方的联系方式
                                 this.contactAccount = contactAccount;
@@ -234,31 +234,31 @@ public class UserDetailVO {
             //为自己不可关注
             this.hasFollowed = false;
             this.beFollow = false;
-            String realPhoneNum = user.getPhoneNum();
-            this.vipEndDate = user.getVipEndDate();
-            this.likeCount = user.getLikeCount();
-            this.birthday = user.getBirthday();
-            this.idCardStatus = user.getIdCardStatus();
-            this.followNum = user.getFollowNum();
+            String realPhoneNum = beSeeUser.getPhoneNum();
+            this.vipEndDate = beSeeUser.getVipEndDate();
+            this.likeCount = beSeeUser.getLikeCount();
+            this.birthday = beSeeUser.getBirthday();
+            this.idCardStatus = beSeeUser.getIdCardStatus();
+            this.followNum = beSeeUser.getFollowNum();
             if (StringUtils.isNotEmpty(realPhoneNum)) {
                 this.phoneNum = realPhoneNum.substring(0, 3) + "*****" + realPhoneNum.substring(8);
             }
-            this.shell = user.getShell();
+            this.shell = beSeeUser.getShell();
 
-            this.authNum = user.getAuthNum();
-            this.gradeLevel = user.getGradeLevel();
-            this.wealthLevel = user.getWealthLevel();
+            this.authNum = beSeeUser.getAuthNum();
+            this.gradeLevel = beSeeUser.getGradeLevel();
+            this.wealthLevel = beSeeUser.getWealthLevel();
         } else {
-            if (mineUser != null && !mineUser.getId().equals(user.getId())) {
-                Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(mineUser.getId(), user.getId(), CommonStatus.enable);
+            if (mineUser != null && !mineUser.getId().equals(beSeeUser.getId())) {
+                Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(mineUser.getId(), beSeeUser.getId(), CommonStatus.enable);
                 this.hasFollowed = followCount > 0;
                 //查询对方是否关注了自己
-                Integer beFollowCount = followRepository.countByUserIdAndBeUserIdAndStatus(user.getId(), mineUser.getId(), CommonStatus.enable);
+                Integer beFollowCount = followRepository.countByUserIdAndBeUserIdAndStatus(beSeeUser.getId(), mineUser.getId(), CommonStatus.enable);
                 this.beFollow = beFollowCount > 0;
                 //查询出来chatUser，用来判断用户是否购买了。
 //                this.showBuyMsg = true;
                 //如果被对方关注了，
-                this.chat = chatService.getSingleChatVO(mineUser, user.getId());
+                this.chat = chatService.seeUserDetailGetOrCreateChat(mineUser, beSeeUser.getId());
             } else {
                 //未登录所有人都显示可关注
                 this.hasFollowed = false;

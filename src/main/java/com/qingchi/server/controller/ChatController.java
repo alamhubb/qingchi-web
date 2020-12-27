@@ -4,6 +4,8 @@ import com.qingchi.base.common.ResultVO;
 import com.qingchi.base.constant.ChatType;
 import com.qingchi.base.constant.CommonStatus;
 import com.qingchi.base.constant.ErrorCode;
+import com.qingchi.base.constant.status.ChatStatus;
+import com.qingchi.base.constant.status.ChatUserStatus;
 import com.qingchi.base.constant.status.MessageStatus;
 import com.qingchi.base.utils.UserUtils;
 import com.qingchi.server.domain.PayShellOpenChatDomain;
@@ -26,6 +28,7 @@ import com.qingchi.server.model.ChatOpenVO;
 import com.qingchi.server.model.UserIdVO;
 import com.qingchi.server.service.ChatService;
 import com.qingchi.server.service.ChatUserService;
+import com.qingchi.server.verify.ChatUserVerify;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -66,6 +69,8 @@ public class ChatController {
     private ChatService chatService;
     @Resource
     private FollowRepository followRepository;
+    @Resource
+    private ChatUserVerify chatUserVerify;
 
     /**
      * 传入的ids应该为前台不为自己的，且未读的
@@ -78,7 +83,7 @@ public class ChatController {
     public ResultVO<?> readChatMessages(UserDO user, @RequestBody @Valid ChatReadVO chatVO) {
         if (user != null) {
             Long chatId = chatVO.getChatId();
-            Optional<ChatDO> chatDOOptional = chatRepository.findFirstByIdAndStatus(chatId, CommonStatus.enable);
+            Optional<ChatDO> chatDOOptional = chatRepository.findFirstByIdAndStatus(chatId, ChatStatus.enable);
             if (!chatDOOptional.isPresent()) {
                 log.error("被攻击了，出现了不存在的消息:{}", chatVO.getChatId());
                 return new ResultVO<>("该聊天不存在");
@@ -87,20 +92,29 @@ public class ChatController {
             //为什么判断非系统组别
             if (!chat.getType().equals(ChatType.system_group)) {
                 //查询用户是否有chat权限，并且chat正常
-                Optional<ChatUserDO> chatUserDOOptional = chatUserRepository.findFirstByChatIdAndUserIdAndStatus(chat.getId(), user.getId(), CommonStatus.enable);
+                /*Optional<ChatUserDO> chatUserDOOptional = chatUserRepository.findFirstByChatIdAndChatStatusAndUserId(chat.getId(), ChatStatus.enable, user.getId());
                 if (!chatUserDOOptional.isPresent()) {
                     log.error("用户已经被踢出来了，不具备给这个chat发送消息的权限");
                     //用户给自己被踢出来，或者自己删除的内容发消息。提示异常
                     return new ResultVO<>("聊天已关闭，请刷新");
+                }*/
+                ResultVO<ChatUserDO> resultVO = chatUserVerify.checkChatHasUserId(chatId, user.getId());
+                if (resultVO.hasError()) {
+                    return new ResultVO<>(resultVO);
                 }
+                ChatUserDO chatUserDb = resultVO.getData();
+
                 //将此chat下的所有变为已读 toDO 这里有问题，应该前台把id传过来改为已读
                 //查出来这些msg的id，
                 //如果是私聊，则将自己的  和 对方的msg改为已读，然后弄出一个msgvolist，推送给前台。
                 //如果是群聊，则将自己的改为已读，列表中的已读数量+1
-                ChatUserDO chatUserDb = chatUserDOOptional.get();
+
                 //全部已读
                 chatUserDb.setUnreadNum(0);
-                chatUserDb.setUpdateTime(new Date());
+                //进入chat页，列表中进入，肯定是展示的，所以不会走这里
+                chatUserDb.checkFrontShowAndSetTrue();
+                //目前不根据点击时间更新，只根据消息时间更新
+//                chatUserDb.setUpdateTime(new Date());
                 chatUserRepository.save(chatUserDb);
                 //toDO 这里需要细想怎么个逻辑
                 //需要将chatUser的未读数量更新一下
@@ -169,7 +183,8 @@ public class ChatController {
 
         //进入页面之前，获取chat
         //查询是否之前已经创建过chat、
-        ChatVO chat = chatService.getSingleChatVO(user, receiveUser.getId());
+        ChatVO chat = new ChatVO();
+//        ChatVO chat = chatService.getSingleChatVO(user, receiveUser.getId());
 
         /*new ChatVO(chat);
         chat = chatUserDOOptional.map(chatUserDO -> new ChatVO(chatUserDO.getChat())).orElseGet(() -> );*/
@@ -189,7 +204,7 @@ public class ChatController {
         Boolean needPayOpen = chatVO.getNeedPayOpen();
 
         //需要查询出来判断状态，区分返回不同的错误消息
-        Optional<ChatDO> chatDOOptional = chatRepository.findById(chatVO.getId());
+        Optional<ChatDO> chatDOOptional = chatRepository.findFirstByIdAndStatus(chatVO.getId(), ChatStatus.enable);
 
         if (!chatDOOptional.isPresent()) {
             QingLogger.logger.error("不存在的chat");
@@ -197,10 +212,10 @@ public class ChatController {
         }
 
         ChatDO chatDO = chatDOOptional.get();
-        //如果不为待开启
-        if (!chatDO.getStatus().equals(CommonStatus.waitOpen)) {
+        //如果不为待开启 chat 状态始终为开启
+        /*if (!chatDO.getStatus().equals(ChatStatus.waitOpen)) {
             return new ResultVO<>("会话已开启，请刷新后重试");
-        }
+        }*/
 
         //查询chatUser
         ResultVO<ChatUserDO> chatUserResultVO = checkChatUserAndStatusIsWaitOpen(chatDO.getId(), user.getId());
@@ -262,8 +277,8 @@ public class ChatController {
         ChatUserDO receiveChatUserDO = receiveChatUserResultVO.getData();
 
 
-        //如果未关注，则扣除贝壳
-        ResultVO<ChatVO> resultVO = payShellOpenChatDomain.openChat(user, receiveUser, chatDO, chatUserDO, receiveChatUserDO, dbNeedPayOpen);
+        //如果未关注，则扣除贝壳 user, receiveUser,
+        ResultVO<ChatVO> resultVO = payShellOpenChatDomain.openChat(chatDO, chatUserDO, receiveChatUserDO, dbNeedPayOpen);
 
         /*new ChatVO(chat);
         chat = chatUserDOOptional.map(chatUserDO -> new ChatVO(chatUserDO.getChat())).orElseGet(() -> );*/
@@ -271,15 +286,13 @@ public class ChatController {
     }
 
     private ResultVO<ChatUserDO> checkChatUserAndStatusIsWaitOpen(Long chatId, Integer userId) {
-        Optional<ChatUserDO> receiveChatUserDOOptional = chatUserRepository.findFirstByChatIdAndUserId(chatId, userId);
-        if (!receiveChatUserDOOptional.isPresent()) {
-            QingLogger.logger.error("chat：{}下不存在该用户：{}", chatId, userId);
-            return new ResultVO<>(ErrorCode.SYSTEM_ERROR);
+        ResultVO<ChatUserDO> resultVO = chatUserVerify.checkChatHasUserId(chatId, userId);
+        if (resultVO.hasError()) {
+            return new ResultVO<>(resultVO);
         }
+        ChatUserDO chatUserDO = resultVO.getData();
 
-        ChatUserDO chatUserDO = receiveChatUserDOOptional.get();
-
-        if (!chatUserDO.getStatus().equals(CommonStatus.waitOpen)) {
+        if (!chatUserDO.getStatus().equals(ChatUserStatus.waitOpen)) {
             return new ResultVO<>("会话已开启，请刷新后重试");
         }
         return new ResultVO<>(chatUserDO);
@@ -289,7 +302,7 @@ public class ChatController {
     @PostMapping("removeChat")
     public ResultVO<?> removeChat(UserDO user, @RequestBody @Valid @NotNull ChatRemoveVO chatVO) {
         Long chatId = chatVO.getChatId() != null ? chatVO.getChatId() : chatVO.getChatUserId();
-        Optional<ChatDO> chatDOOptional = chatRepository.findFirstByIdAndStatus(chatId, CommonStatus.enable);
+        /*Optional<ChatDO> chatDOOptional = chatRepository.findFirstByIdAndStatus(chatId, ChatStatus.enable);
         if (!chatDOOptional.isPresent()) {
             log.error("被攻击了，出现了不存在的消息:{}", chatId);
             return new ResultVO<>("该聊天不存在");
@@ -297,18 +310,42 @@ public class ChatController {
         ChatDO chat = chatDOOptional.get();
         if (chat.getType().equals(ChatType.system_group)) {
             return new ResultVO<>("暂时无法删除官方群聊");
-        }
+        }*/
         //查询用户是否有chat权限，并且chat正常
-        Optional<ChatUserDO> chatUserDOOptional = chatUserRepository.findFirstByChatIdAndUserIdAndStatus(chat.getId(), user.getId(), CommonStatus.enable);
-        if (!chatUserDOOptional.isPresent()) {
-            log.error("用户已经被踢出来了，不具备给这个chat发送消息的权限");
-            //用户给自己被踢出来，或者自己删除的内容发消息。提示异常
-            return new ResultVO<>("聊天已关闭，请刷新后重试");
+        ResultVO<ChatUserDO> resultVO = chatUserVerify.checkChatHasUserId(chatId, user.getId());
+        if (resultVO.hasError()) {
+            return new ResultVO<>(resultVO);
         }
+        ChatUserDO chatUserDO = resultVO.getData();
 
+        ResultVO<ChatUserDO> receiverResultVO = chatUserVerify.checkChatHasUserId(chatId, chatUserDO.getReceiveUserId());
+        if (receiverResultVO.hasError()) {
+            return new ResultVO<>(receiverResultVO);
+        }
+        ChatUserDO receiveChatUserDO = receiverResultVO.getData();
+
+        List<ChatUserDO> chatUserDOS = new ArrayList<>();
+
+        //双方都为开启，则关闭，自己变为关闭，对方变为被关闭
+        Date curDate = new Date();
+        if (chatUserDO.getStatus().equals(ChatUserStatus.enable) &&
+                receiveChatUserDO.getStatus().equals(ChatUserStatus.enable)
+        ) {
+            chatUserDO.changeStatusClose(curDate);
+            receiveChatUserDO.changeStatusBeClose(curDate);
+            chatUserDOS.add(chatUserDO);
+            chatUserDOS.add(receiveChatUserDO);
+            //自己为被关闭，对方关闭，自己也可以关闭
+        } else if (chatUserDO.getStatus().equals(ChatUserStatus.beClose) &&
+                receiveChatUserDO.getStatus().equals(ChatUserStatus.close)
+        ) {
+            chatUserDO.changeStatusClose(curDate);
+            chatUserDOS.add(chatUserDO);
+        } else {
+            return new ResultVO<>("无法关闭会话");
+        }
         //查询chat
-        chat.setStatus(CommonStatus.delete);
-        chatRepository.save(chat);
+        chatUserRepository.saveAll(chatUserDOS);
         return new ResultVO<>();
     }
 }

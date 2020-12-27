@@ -68,7 +68,7 @@ public class PayShellOpenChatDomain {
     //已有会话，则直接进入，改为前台显示
 
     @Transactional
-    public ResultVO<ChatVO> openChat(UserDO user, UserDO receiveUser, ChatDO chatDO, ChatUserDO chatUserDO, ChatUserDO receiveChatUserDO, boolean needPayOpen) {
+    public ResultVO<ChatVO> openChat(ChatDO chatDO, ChatUserDO chatUserDO, ChatUserDO receiveChatUserDO, boolean needPayOpen) {
         //肯定不能通过 可用状态查询是否显示，
         //要有一个状态判断是否在前台显示，因为有时候开启了，但是前台不显示。你被对方开启
         Date curDate = new Date();
@@ -85,25 +85,25 @@ public class PayShellOpenChatDomain {
         chatUserDO.setStatus(CommonStatus.enable);
         chatUserDO.setUpdateTime(curDate);
         //自己的要在前台显示，需要有一个状态控制是否前台显示
-        chatUserDO.setFrontShow(true);
+//        chatUserDO.setFrontShow(true);
 
         //开启对方的chatUser
         receiveChatUserDO.setStatus(CommonStatus.enable);
         receiveChatUserDO.setUpdateTime(curDate);
-        receiveChatUserDO.setFrontShow(true);
+//        receiveChatUserDO.setFrontShow(true);
         if (needPayOpen) {
-            chatUserDO.setLastContent("您付费开启了会话");
+//            chatUserDO.setLastContent("您付费开启了会话");
             chatUserDO.setOpenChatType(OpenChatType.payOpen);
 
             //需要更改，到时候需要由用户1向用户2发送一条系统默认消息
-            receiveChatUserDO.setLastContent("对方付费开启了和您的会话");
+//            receiveChatUserDO.setLastContent("对方付费开启了和您的会话");
             receiveChatUserDO.setOpenChatType(OpenChatType.receivePayOpen);
         } else {
-            chatUserDO.setLastContent("您开启了会话");
+//            chatUserDO.setLastContent("您开启了会话");
             chatUserDO.setOpenChatType(OpenChatType.normalOpen);
 
             //需要更改，到时候需要由用户1向用户2发送一条系统默认消息
-            receiveChatUserDO.setLastContent("对方开启了和您的会话");
+//            receiveChatUserDO.setLastContent("对方开启了和您的会话");
             receiveChatUserDO.setOpenChatType(OpenChatType.normalReceiveOpen);
         }
 

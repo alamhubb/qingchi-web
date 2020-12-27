@@ -1,6 +1,8 @@
 package com.qingchi.server.service;
 
 import com.qingchi.base.constant.CommonStatus;
+import com.qingchi.base.constant.status.ChatStatus;
+import com.qingchi.base.constant.status.ChatUserStatus;
 import com.qingchi.base.model.chat.ChatDO;
 import com.qingchi.base.repository.chat.ChatRepository;
 import com.qingchi.base.model.chat.ChatUserDO;
@@ -31,28 +33,29 @@ public class ChatService {
     FollowRepository followRepository;
 
     //获取私聊的chat
-    public ChatVO getSingleChatVO(UserDO user, Integer receiveUserId) {
-        Optional<ChatUserDO> chatUserDOOptional = chatUserRepository.findFirstByUserIdAndReceiveUserId(user.getId(), receiveUserId);
-        ChatVO chat;
+    //查看对方主页时
+    public ChatVO seeUserDetailGetOrCreateChat(UserDO user, Integer receiveUserId) {
+        Optional<ChatUserDO> chatUserDOOptional = chatUserRepository.findFirstByChatStatusAndUserIdAndReceiveUserId(ChatStatus.enable, user.getId(), receiveUserId);
+        ChatVO chatUserVO;
         //如果创建过，则获取。返回
         if (chatUserDOOptional.isPresent()) {
             ChatUserDO chatUserDO = chatUserDOOptional.get();
 //            Optional<ChatDO> chatDOOptional = chatRepository.findById(chatUserDO.getChatId());
-            chat = new ChatVO(chatUserDO.getChat(), chatUserDO);
+            chatUserVO = new ChatVO(chatUserDO.getChat(), chatUserDO);
             //如果没创建过，则创建，并返回
         } else {
-            CreateSingleChatResult chatResult = this.createSingleChat(user, receiveUserId);
-            chat = new ChatVO(chatResult.getChat(), chatResult.getMineChatUser());
+            CreateSingleChatResult chatResult = this.seeUserDetailCreateChat(user, receiveUserId);
+            chatUserVO = new ChatVO(chatResult.getChat(), chatResult.getMineChatUser());
         }
 
-        if (chat.getStatus().equals(CommonStatus.waitOpen)) {
+        if (chatUserVO.getStatus().equals(ChatUserStatus.waitOpen)) {
             //查询对方是否关注了自己，只有未关注的情况，才能支付
             Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(receiveUserId, user.getId(), CommonStatus.enable);
             if (followCount > 0) {
-                chat.setNeedPayOpen(false);
+                chatUserVO.setNeedPayOpen(false);
             }
         }
-        return chat;
+        return chatUserVO;
     }
 
     //点击一个人，陌生人，点击发送消息。
@@ -62,7 +65,7 @@ public class ChatService {
     //登录情况下查询用户有权限的chatuser
     //详情页面，需要知道是否关注你了
 
-    public CreateSingleChatResult createSingleChat(UserDO user, Integer receiveUserId) {
+    public CreateSingleChatResult seeUserDetailCreateChat(UserDO user, Integer receiveUserId) {
         ChatDO chat = new ChatDO(ChatType.single);
 
         //生成chat
@@ -70,7 +73,8 @@ public class ChatService {
 
         //match属于私聊，需要保存对方的内容，方便展示头像昵称
         ChatUserDO mineChatUser = new ChatUserDO(chat, user.getId(), receiveUserId);
-        mineChatUser.setFrontShow(true);
+        //创建时不改为true，详见fronshow字段，修改状态逻辑
+//        mineChatUser.setFrontShow(true);
 
         ChatUserDO receiveChatUser = new ChatUserDO(chat, receiveUserId, user.getId());
 
