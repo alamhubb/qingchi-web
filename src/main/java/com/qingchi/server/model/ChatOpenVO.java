@@ -16,4 +16,6 @@ public class ChatOpenVO {
 
     @NotNull
     private Boolean needPayOpen;
+
+    private String content;
 }

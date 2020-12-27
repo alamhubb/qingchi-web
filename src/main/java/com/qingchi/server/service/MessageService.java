@@ -1,0 +1,214 @@
+package com.qingchi.server.service;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.qingchi.base.common.ResultVO;
+import com.qingchi.base.config.redis.RedisSubListenerConfig;
+import com.qingchi.base.constant.ChatType;
+import com.qingchi.base.constant.CommonStatus;
+import com.qingchi.base.constant.ErrorMsg;
+import com.qingchi.base.constant.UserType;
+import com.qingchi.base.constant.status.ChatStatus;
+import com.qingchi.base.constant.status.ChatUserStatus;
+import com.qingchi.base.constant.status.MessageReceiveStatus;
+import com.qingchi.base.domain.ReportDomain;
+import com.qingchi.base.model.chat.ChatDO;
+import com.qingchi.base.model.chat.ChatUserDO;
+import com.qingchi.base.model.chat.MessageDO;
+import com.qingchi.base.model.chat.MessageReceiveDO;
+import com.qingchi.base.model.notify.NotifyDO;
+import com.qingchi.base.model.user.UserDO;
+import com.qingchi.base.modelVO.ChatVO;
+import com.qingchi.base.modelVO.MessageVO;
+import com.qingchi.base.modelVO.NotifyVO;
+import com.qingchi.base.platform.qq.QQUtil;
+import com.qingchi.base.platform.weixin.HttpResult;
+import com.qingchi.base.platform.weixin.WxUtil;
+import com.qingchi.base.repository.chat.ChatRepository;
+import com.qingchi.base.repository.chat.ChatUserRepository;
+import com.qingchi.base.repository.chat.MessageReceiveRepository;
+import com.qingchi.base.repository.chat.MessageRepository;
+import com.qingchi.base.repository.notify.NotifyRepository;
+import com.qingchi.base.repository.user.UserRepository;
+import com.qingchi.base.service.NotifyService;
+import com.qingchi.base.service.ReportService;
+import com.qingchi.base.utils.JsonUtils;
+import com.qingchi.base.utils.QingLogger;
+import com.qingchi.server.controller.UserUpdateController;
+import com.qingchi.server.model.MessageAddVO;
+import com.qingchi.server.model.MessageQueryVO;
+import com.qingchi.server.model.MsgDeleteVO;
+import com.qingchi.server.verify.ChatUserVerify;
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import javax.annotation.Resource;
+import javax.validation.Valid;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * @author qinkaiyuan
+ * @date 2019-06-16 12:39
+ */
+@Service
+public class MessageService {
+    private final Logger log = LoggerFactory.getLogger(getClass());
+
+    @Resource
+    private UserRepository userRepository;
+    @Resource
+    private ChatRepository chatRepository;
+    @Resource
+    private MessageRepository messageRepository;
+    @Resource
+    private NotifyService notifyService;
+    @Resource
+    private NotifyRepository notifyRepository;
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
+    @Resource
+    private ChatUserRepository chatUserRepository;
+    @Resource
+    private MessageReceiveRepository messageReceiveRepository;
+    @Resource
+    private ReportService reportService;
+    @Resource
+    private ReportDomain reportDomain;
+    @Resource
+    private ChatUserVerify chatUserVerify;
+
+
+    public ResultVO<MessageVO> sendMsg(UserDO user, MessageAddVO msgAddVO) throws IOException {
+        Long chatId = msgAddVO.getChatId();
+        String talkContent = msgAddVO.getContent();
+        if (StringUtils.isEmpty(talkContent)) {
+            return new ResultVO<>("不能发布空内容");
+        }
+        if (StringUtils.isEmpty(user.getPhoneNum())) {
+            QingLogger.logger.error("用户未绑定手机号还能调用后台发布功能，用户Id：{}", user.getId());
+            return new ResultVO<>(ErrorMsg.bindPhoneNumCan);
+        }
+
+        if (!CommonStatus.canPublishContentStatus.contains(user.getStatus())) {
+            return new ResultVO<>(ErrorMsg.userMaybeViolation);
+        }
+
+        Optional<ChatDO> chatDOOptional = chatRepository.findById(chatId);
+        if (!chatDOOptional.isPresent()) {
+            log.error("被攻击了，出现了不存在的消息:{}", chatId);
+            return new ResultVO<>("该聊天不存在");
+        }
+
+        ChatDO chat = chatDOOptional.get();
+        //生成消息，先不管群聊只管私聊，私聊会有receiveUser，用来判断已读未读
+        //只管群聊
+        //查看chat的类型
+        if (chat.getType().equals(ChatType.system_group)) {
+            //不为空才进行校验
+            if (StringUtils.isNotEmpty(talkContent)) {
+                if (UserUpdateController.checkHasIllegals(talkContent)) {
+                    return new ResultVO<>(ErrorMsg.CHECK_VIOLATION_ERR_MSG);
+                }
+                HttpResult wxResult = WxUtil.checkContentWxSec(talkContent);
+                if (wxResult.hasError()) {
+                    return new ResultVO<>(ErrorMsg.CHECK_VIOLATION_ERR_MSG);
+                }
+                HttpResult qqResult = QQUtil.checkContentQQSec(talkContent);
+                if (qqResult.hasError()) {
+                    return new ResultVO<>(ErrorMsg.CHECK_VIOLATION_ERR_MSG);
+                }
+            }
+            Date curDate = new Date();
+            chat.setUpdateTime(curDate);
+//            chat.setLastContent(content);
+            chatRepository.save(chat);
+
+            //不校验权限，只要是系统用户就可以发送
+            MessageDO message = messageRepository.save(new MessageDO(chat.getId(), msgAddVO.getContent(), user.getId()));
+            //校验是否触发关键词，如果触发生成举报，修改动态为预审查，只能用户自己可见
+            reportDomain.checkKeywordsCreateReport(message);
+
+            NotifyVO notifyVO = new NotifyVO(chat, user, message);
+            //如果官方群聊，则给所有人发送信息
+            try {
+                stringRedisTemplate.convertAndSend(RedisSubListenerConfig.allUserKey, JsonUtils.objectMapper.writeValueAsString(notifyVO));
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
+            }
+            return new ResultVO<>(new MessageVO(message, "true"));
+            //不为官方群聊
+        } else {
+            //如果是官方通知和
+            //如果为官方群聊，则所有人都可以发送内容
+            //查询用户是否有权限往chat中发送内容
+            Optional<ChatUserDO> chatUserDOOptional = chatUserRepository.findFirstByChatIdAndChatStatusAndUserIdAndStatus(chatId, ChatStatus.enable, user.getId(), ChatUserStatus.enable);
+            if (!chatUserDOOptional.isPresent()) {
+                log.error("用户已经被踢出来了，不具备给这个chat发送消息的权限");
+                //用户给自己被踢出来，或者自己删除的内容发消息。提示异常
+                return new ResultVO<>("对方关闭了会话，无法发送消息，请等待对方再次开启对话！");
+            }
+            String content = msgAddVO.getContent();
+            //构建消息
+            MessageDO message = messageRepository.save(new MessageDO(chat.getId(), content, user.getId()));
+
+            Date curDate = new Date();
+            chat.setUpdateTime(curDate);
+//            chat.setLastContent(content);
+            chatRepository.save(chat);
+
+            List<NotifyDO> notifies = new ArrayList<>();
+            //有权限，则给chat中的所有用户发送内容
+
+            List<ChatUserDO> chatUserDOS = chatUserRepository.findByChatIdAndChatStatusAndStatus(chatId, ChatStatus.enable, ChatUserStatus.enable);
+            //包含自己，起码要有两个人
+            if (chatUserDOS.size() <= 1) {
+                //用户给自己被踢出来，或者自己删除的内容发消息。提示异常
+                return new ResultVO<>("对方已退出聊天");
+            }
+            MessageReceiveDO mineMessageUser = new MessageReceiveDO();
+            //发送消息
+            for (ChatUserDO chatUserDO : chatUserDOS) {
+//                chatUserDO.setLastContent(message.getContent());
+                chatUserDO.setUpdateTime(new Date());
+                //如果为匹配chat，且为待匹配状态
+                if (ChatType.match.equals(chat.getType()) && CommonStatus.waitMatch.equals(chat.getMatchStatus())) {
+                    //则将用户的chat改为匹配成功
+                    chatUserDO.setStatus(CommonStatus.enable);
+                }
+                //获取当起chatUser的userId
+                Integer chatUserId = chatUserDO.getUserId();
+                MessageReceiveDO messageReceiveDO = new MessageReceiveDO(chatUserDO.getId(), user.getId(), chatUserId, message);
+                //自己的话不发送通知，自己的话也要构建消息，要不看不见，因为读是读这个表
+                if (chatUserId.equals(user.getId())) {
+                    messageReceiveDO.setIsMine(true);
+                    messageReceiveDO.setIsRead(true);
+                    mineMessageUser = messageReceiveRepository.save(messageReceiveDO);
+                } else {
+                    //别人的chatUser，要增加未读，自己刚发的消息，别人肯定还没看
+                    chatUserDO.setUnreadNum(chatUserDO.getUnreadNum() + 1);
+                    //接收方，更改前端显示为显示
+                    chatUserDO.checkFrontShowAndSetTrue();
+                    MessageReceiveDO messageReceiveDO1 = messageReceiveRepository.save(messageReceiveDO);
+                    NotifyDO notifyDO = notifyRepository.save(new NotifyDO(messageReceiveDO1));
+                    notifies.add(notifyDO);
+                }
+            }
+            chatUserRepository.saveAll(chatUserDOS);
+            notifyRepository.saveAll(notifies);
+            //保存message
+            notifyService.sendNotifies(notifies, user);
+            //只需要返回自己的
+            return new ResultVO<>(new MessageVO(mineMessageUser));
+        }
+    }
+
+}

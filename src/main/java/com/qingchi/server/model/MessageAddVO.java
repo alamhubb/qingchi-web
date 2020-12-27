@@ -3,6 +3,8 @@ package com.qingchi.server.model;
 import lombok.Data;
 
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
 
 /**
  * @author qinkaiyuan
@@ -10,9 +12,11 @@ import javax.validation.constraints.NotBlank;
  */
 @Data
 public class MessageAddVO {
-    private Long chatUserId;
+    @NotNull
     private Long chatId;
-    private Integer receiveUserId;
+
     @NotBlank
     private String content;
+    //暂时未使用
+    private Integer receiveUserId;
 }
