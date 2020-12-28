@@ -130,6 +130,7 @@ public class MessageService {
             }
             Date curDate = new Date();
             chat.setUpdateTime(curDate);
+            //下版本可删除
 //            chat.setLastContent(content);
             chatRepository.save(chat);
 
