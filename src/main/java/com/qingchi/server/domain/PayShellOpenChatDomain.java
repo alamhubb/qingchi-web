@@ -68,7 +68,7 @@ public class PayShellOpenChatDomain {
     //已有会话，则直接进入，改为前台显示
 
     @Transactional
-    public ResultVO<ChatVO> openChat(ChatDO chatDO, ChatUserDO chatUserDO, ChatUserDO receiveChatUserDO, boolean needPayOpen) {
+    public ResultVO<ChatVO> openChat(UserDO user, UserDO receiveUser, ChatDO chatDO, ChatUserDO chatUserDO, ChatUserDO receiveChatUserDO, boolean needPayOpen) {
         //肯定不能通过 可用状态查询是否显示，
         //要有一个状态判断是否在前台显示，因为有时候开启了，但是前台不显示。你被对方开启
         Date curDate = new Date();
@@ -111,10 +111,11 @@ public class PayShellOpenChatDomain {
         List<ChatUserDO> chatUserDOS = Arrays.asList(chatUserDO, receiveChatUserDO);
         chatUserRepository.saveAll(chatUserDOS);
 
-        /*if (needPayOpen){
+
+        if (needPayOpen) {
             //返回
             shellOrderService.createAndSaveContactAndShellOrders(user, receiveUser, ExpenseType.openChat);
-        }*/
+        }
 
         ChatVO chatVO = new ChatVO(chatDO, chatUserDO, true);
         //需要对方的用户名，昵称。会话未开启

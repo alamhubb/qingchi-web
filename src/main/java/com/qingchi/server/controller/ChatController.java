@@ -280,7 +280,7 @@ public class ChatController {
 
 
         //如果未关注，则扣除贝壳 user, receiveUser,
-        ResultVO<ChatVO> resultVO = payShellOpenChatDomain.openChat(chatDO, chatUserDO, receiveChatUserDO, dbNeedPayOpen);
+        ResultVO<ChatVO> resultVO = payShellOpenChatDomain.openChat(user, receiveUser, chatDO, chatUserDO, receiveChatUserDO, dbNeedPayOpen);
 
 
         ChatVO chatVO1 = resultVO.getData();
