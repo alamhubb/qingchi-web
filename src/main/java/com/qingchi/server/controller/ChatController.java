@@ -121,7 +121,7 @@ public class ChatController {
                 //toDO 这里需要细想怎么个逻辑
                 //需要将chatUser的未读数量更新一下
 //            messageReceiveDORepository.updateMessageReceiveRead(chatUserDb, readVO.getMessageIds());
-                List<MessageReceiveDO> messageReceiveDOS = messageReceiveDORepository.findByChatUserIdAndStatusAndIsReadFalse(chatUserDb.getId(), MessageStatus.enable);
+                List<MessageReceiveDO> messageReceiveDOS = messageReceiveDORepository.findByChatUserIdAndChatUserStatusAndStatusAndIsReadFalse(chatUserDb.getId(), ChatUserStatus.enable, MessageStatus.enable);
 //                List<MessageReceiveDO> messageReceiveDOS = new ArrayList<>();
                 //把具体的每一条改为已读
                 if (messageReceiveDOS.size() > 0) {
@@ -206,7 +206,7 @@ public class ChatController {
         Boolean needPayOpen = chatVO.getNeedPayOpen();
 
         //需要查询出来判断状态，区分返回不同的错误消息
-        Optional<ChatDO> chatDOOptional = chatRepository.findFirstByIdAndStatus(chatVO.getId(), ChatStatus.enable);
+        Optional<ChatDO> chatDOOptional = chatRepository.findFirstByIdAndTypeAndStatus(chatVO.getId(), ChatType.single, ChatStatus.enable);
 
         if (!chatDOOptional.isPresent()) {
             QingLogger.logger.error("不存在的chat");
@@ -336,6 +336,10 @@ public class ChatController {
             return new ResultVO<>(resultVO);
         }
         ChatUserDO chatUserDO = resultVO.getData();
+        ChatDO chatDO = chatUserDO.getChat();
+        if (chatDO.getType().equals(ChatType.system_group)) {
+            return new ResultVO<>("无法删除系统群聊");
+        }
 
         /*ResultVO<ChatUserDO> receiverResultVO = chatUserVerify.checkChatHasUserId(chatId, chatUserDO.getReceiveUserId());
         if (receiverResultVO.hasError()) {
@@ -387,7 +391,10 @@ public class ChatController {
             return new ResultVO<>(resultVO);
         }
         ChatUserDO chatUserDO = resultVO.getData();
-
+        ChatDO chatDO = chatUserDO.getChat();
+        if (chatDO.getType().equals(ChatType.system_group)) {
+            return new ResultVO<>("无法关闭系统群聊");
+        }
         /*ResultVO<ChatUserDO> receiverResultVO = chatUserVerify.checkChatHasUserId(chatId, chatUserDO.getReceiveUserId());
         if (receiverResultVO.hasError()) {
             return new ResultVO<>(receiverResultVO);
@@ -437,7 +444,10 @@ public class ChatController {
             return new ResultVO<>(resultVO);
         }
         ChatUserDO chatUserDO = resultVO.getData();
-
+        ChatDO chatDO = chatUserDO.getChat();
+        if (chatDO.getType().equals(ChatType.system_group)) {
+            return new ResultVO<>("无法关闭系统群聊");
+        }
         /*ResultVO<ChatUserDO> receiverResultVO = chatUserVerify.checkChatHasUserId(chatId, chatUserDO.getReceiveUserId());
         if (receiverResultVO.hasError()) {
             return new ResultVO<>(receiverResultVO);

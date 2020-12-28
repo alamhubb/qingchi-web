@@ -28,14 +28,23 @@ public class ChatUserService {
     //初始化和查询chat列表触发的
     public List<ChatVO> getChats(UserDO user) {
         //未登录的情况只插叙你官方的chats
-        List<ChatUserDO> chats2 = chatUserRepository.findByChatStatusAndUserIdAndFrontShowTrueOrderByChatTopLevelDescTopFlagDescUpdateTimeDesc(ChatStatus.enable, user.getId());
-        return ChatVO.chatUserDOToVOS(chats2);
+        List<ChatUserDO> chatUsers = chatUserRepository.findByChatStatusAndUserIdAndFrontShowTrueOrderByChatTopLevelDescTopFlagDescUpdateTimeDesc(ChatStatus.enable, user.getId());
+        //查询的时候chat列表展示不为当前用户的
+        /*return chatUsers.stream().map((ChatUserDO chatUserDO) -> {
+            //只有启用的才显示消息列表
+            if (chatUserDO.getStatus().equals(ChatUserStatus.enable)) {
+                return new ChatVO(chatUserDO.getChat(), chatUserDO, true);
+            } else {
+                return new ChatVO(chatUserDO.getChat(), chatUserDO);
+            }
+        }).collect(Collectors.toList());*/
+        return ChatVO.chatUserDOToVOS(chatUsers);
     }
 
     //未登录的情况下查询官方chat，官方群聊
     public List<ChatVO> getChats() {
         //未登录的情况只插叙你官方的chats
-        List<ChatDO> chats1 = chatRepository.findByStatusAndTypeInOrderByTopLevelAscUpdateTimeDesc(ChatStatus.enable, ChatType.systemChats);
-        return ChatVO.chatDOToVOS(chats1);
+        List<ChatDO> chats = chatRepository.findByStatusAndTypeInOrderByTopLevelDescUpdateTimeDesc(ChatStatus.enable, ChatType.systemChats);
+        return ChatVO.chatDOToVOS(chats);
     }
 }

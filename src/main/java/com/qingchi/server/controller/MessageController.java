@@ -1,6 +1,5 @@
 package com.qingchi.server.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.qingchi.base.constant.status.ChatStatus;
 import com.qingchi.base.constant.status.ChatUserStatus;
 import com.qingchi.base.constant.status.MessageReceiveStatus;
@@ -10,31 +9,23 @@ import com.qingchi.base.repository.chat.ChatRepository;
 import com.qingchi.base.model.chat.ChatUserDO;
 import com.qingchi.base.repository.chat.ChatUserRepository;
 import com.qingchi.base.common.ResultVO;
-import com.qingchi.base.config.redis.RedisSubListenerConfig;
 import com.qingchi.base.modelVO.MessageVO;
-import com.qingchi.base.modelVO.NotifyVO;
 import com.qingchi.base.constant.*;
 import com.qingchi.base.model.chat.MessageDO;
 import com.qingchi.base.model.chat.MessageReceiveDO;
 import com.qingchi.base.repository.chat.MessageReceiveRepository;
 import com.qingchi.base.repository.chat.MessageRepository;
-import com.qingchi.base.model.notify.NotifyDO;
 import com.qingchi.base.repository.notify.NotifyRepository;
 import com.qingchi.base.service.NotifyService;
-import com.qingchi.base.platform.qq.QQUtil;
-import com.qingchi.base.platform.weixin.HttpResult;
-import com.qingchi.base.platform.weixin.WxUtil;
 import com.qingchi.base.service.ReportService;
 import com.qingchi.base.model.user.UserDO;
 import com.qingchi.base.repository.user.UserRepository;
-import com.qingchi.base.utils.JsonUtils;
 import com.qingchi.base.utils.QingLogger;
 import com.qingchi.server.model.MessageAddVO;
 import com.qingchi.server.model.MessageQueryVO;
 import com.qingchi.server.model.MsgDeleteVO;
 import com.qingchi.server.service.MessageService;
 import com.qingchi.server.verify.ChatUserVerify;
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -96,10 +87,6 @@ public class MessageController {
         Long chatId = queryVO.getChatId();
         //msg id也要统一，举报的时候不知道是哪个
         List<Long> msgIds = queryVO.getMsgIds();
-        ChatDO chatDO = null;
-        ChatUserDO chatUserDO = null;
-
-
         //前台传入chatId，
         //校验chatId，对应的chatDO是否存在，
         //校验chat下是否存在此user
@@ -119,22 +106,39 @@ public class MessageController {
 
         //1,从chat页面进入，已有chat
 
-
+        //首先获取chatId
+        //无论是否登陆，都是先获取chatId
         if (chatId == null) {
-            if (msgIds.size() > 0) {
-                Optional<MessageDO> messageDOOptional = messageRepository.findById(msgIds.get(0));
-                if (messageDOOptional.isPresent()) {
-                    chatId = messageDOOptional.get().getChatId();
-                }
+            if (msgIds.size() < 1) {
+                return new ResultVO<>(messageVOS);
             }
+            Optional<MessageDO> messageDOOptional = messageRepository.findById(msgIds.get(0));
+            if (!messageDOOptional.isPresent()) {
+                return new ResultVO<>(messageVOS);
+            }
+            chatId = messageDOOptional.get().getChatId();
         }
-        ResultVO<ChatUserDO> resultVO = chatUserVerify.checkChatHasUserId(chatId, user.getId());
-        if (resultVO.hasError()) {
-            return new ResultVO<>(resultVO);
-        }
-        chatUserDO = resultVO.getData();
-        if (chatUserDO != null) {
-            List<MessageReceiveDO> messageDOS = messageReceiveRepository.findTop30ByChatUserIdAndStatusAndMessageIdNotInOrderByIdDesc(chatUserDO.getId(), MessageReceiveStatus.enable, msgIds);
+
+        //用户为空，则判断chat是否为官方类型，如果是允许查询，返回数据
+        if (user == null) {
+            Optional<ChatDO> chatDOOptional = chatRepository.findFirstByIdAndTypeAndStatus(chatId, ChatType.system_group, ChatStatus.enable);
+            if (!chatDOOptional.isPresent()) {
+                log.error("无权限访问的会话");
+                return new ResultVO<>(ErrorCode.SYSTEM_ERROR);
+            }
+            //查询用户这个chatUser下的消息
+            //已经确认过chat为可用的
+            List<MessageDO> messageDOS = messageRepository.findTop31ByChatIdAndStatusAndIdNotInOrderByIdDesc(chatId, ChatStatus.enable, msgIds);
+            messageVOS = MessageVO.messageDOToVOS(messageDOS, null);
+            //如果不为空，则判断用户是否有chat的权限
+        } else {
+            //如果用户没权限，则异常
+            ResultVO<ChatUserDO> resultVO = chatUserVerify.checkChatHasUserId(chatId, user.getId());
+            if (resultVO.hasError()) {
+                return new ResultVO<>(resultVO);
+            }
+            ChatUserDO chatUserDO = resultVO.getData();
+            List<MessageReceiveDO> messageDOS = messageReceiveRepository.findTop30ByChatUserIdAndChatUserStatusAndStatusAndMessageIdNotInOrderByIdDesc(chatUserDO.getId(), ChatUserStatus.enable, MessageReceiveStatus.enable, msgIds);
             messageVOS = MessageVO.messageReceiveDOToVOS(messageDOS);
         }
         return new ResultVO<>(messageVOS);

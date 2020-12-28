@@ -102,13 +102,14 @@ public class MessageService {
             return new ResultVO<>(ErrorMsg.userMaybeViolation);
         }
 
-        Optional<ChatDO> chatDOOptional = chatRepository.findById(chatId);
-        if (!chatDOOptional.isPresent()) {
-            log.error("被攻击了，出现了不存在的消息:{}", chatId);
-            return new ResultVO<>("该聊天不存在");
+
+        ResultVO<ChatUserDO> resultVO = chatUserVerify.checkChatHasUserIdAndEnable(chatId, user.getId());
+        if (resultVO.hasError()) {
+            return new ResultVO<>(resultVO);
         }
 
-        ChatDO chat = chatDOOptional.get();
+        ChatDO chat = resultVO.getData().getChat();
+
         //生成消息，先不管群聊只管私聊，私聊会有receiveUser，用来判断已读未读
         //只管群聊
         //查看chat的类型
@@ -144,18 +145,13 @@ public class MessageService {
             } catch (JsonProcessingException e) {
                 e.printStackTrace();
             }
-            return new ResultVO<>(new MessageVO(message, "true"));
+            return new ResultVO<>(new MessageVO(message, user.getId()));
             //不为官方群聊
         } else {
             //如果是官方通知和
             //如果为官方群聊，则所有人都可以发送内容
             //查询用户是否有权限往chat中发送内容
-            Optional<ChatUserDO> chatUserDOOptional = chatUserRepository.findFirstByChatIdAndChatStatusAndUserIdAndStatus(chatId, ChatStatus.enable, user.getId(), ChatUserStatus.enable);
-            if (!chatUserDOOptional.isPresent()) {
-                log.error("用户已经被踢出来了，不具备给这个chat发送消息的权限");
-                //用户给自己被踢出来，或者自己删除的内容发消息。提示异常
-                return new ResultVO<>("对方关闭了会话，无法发送消息，请等待对方再次开启对话！");
-            }
+
             String content = msgAddVO.getContent();
             //构建消息
             MessageDO message = messageRepository.save(new MessageDO(chat.getId(), content, user.getId()));
@@ -186,7 +182,7 @@ public class MessageService {
                 }
                 //获取当起chatUser的userId
                 Integer chatUserId = chatUserDO.getUserId();
-                MessageReceiveDO messageReceiveDO = new MessageReceiveDO(chatUserDO.getId(), user.getId(), chatUserId, message);
+                MessageReceiveDO messageReceiveDO = new MessageReceiveDO(chatUserDO, user.getId(), chatUserId, message);
                 //自己的话不发送通知，自己的话也要构建消息，要不看不见，因为读是读这个表
                 if (chatUserId.equals(user.getId())) {
                     messageReceiveDO.setIsMine(true);

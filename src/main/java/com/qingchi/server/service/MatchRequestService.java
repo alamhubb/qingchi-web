@@ -71,7 +71,7 @@ public class MatchRequestService {
         for (ChatUserDO chatUserDO : chatUserDOS) {
 //            chatUserDO.setLastContent(message.getContent());
             chatUserDO.setUpdateTime(new Date());
-            MessageReceiveDO messageReceiveDO = new MessageReceiveDO(chatUserDO.getId(), chatUserDO.getUserId(), chatUserDO.getReceiveUserId(), message);
+            MessageReceiveDO messageReceiveDO = new MessageReceiveDO(chatUserDO, chatUserDO.getUserId(), chatUserDO.getReceiveUserId(), message);
             messageReceiveDOS.add(messageReceiveDO);
         }
         messageReceiveDORepository.saveAll(messageReceiveDOS);
