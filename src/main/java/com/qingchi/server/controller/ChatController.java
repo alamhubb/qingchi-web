@@ -28,7 +28,6 @@ import com.qingchi.server.service.ChatService;
 import com.qingchi.server.service.ChatUserService;
 import com.qingchi.server.service.MessageService;
 import com.qingchi.server.verify.ChatUserVerify;
-import lombok.Data;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,7 +38,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
 import javax.validation.Valid;
-import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.io.IOException;
 import java.util.Date;
@@ -267,10 +265,10 @@ public class ChatController {
 
         UserDO receiveUser = UserUtils.get(receiveUserId);
 
-        //如果对方用户已经违规
-        if (receiveUser.getStatus().equals(CommonStatus.violation)) {
+        //如果对方用户已经违规,不向其他展示用户是否被封禁
+        /*if (receiveUser.getStatus().equals(CommonStatus.violation)) {
             return new ResultVO<>("该用户已被封禁，无法开启会话，请刷新后重试");
-        }
+        }*/
 
         //查询receiveChatUserDO
         ResultVO<ChatUserDO> receiveChatUserResultVO = checkChatUserAndStatusIsWaitOpen(chatDO.getId(), receiveUser.getId());
@@ -314,16 +312,15 @@ public class ChatController {
         }
         ChatUserDO chatUserDO = resultVO.getData();
 
-        if (!chatUserDO.getStatus().equals(ChatUserStatus.waitOpen)) {
+        if (chatUserDO.getStatus().equals(ChatUserStatus.enable)) {
             return new ResultVO<>("会话已开启，请刷新后重试");
         }
         return new ResultVO<>(chatUserDO);
     }
 
-
-    @PostMapping("removeChat")
-    public ResultVO<?> removeChat(UserDO user, @RequestBody @Valid @NotNull ChatRemoveVO chatVO) {
-        Long chatId = chatVO.getChatId() != null ? chatVO.getChatId() : chatVO.getChatUserId();
+    @PostMapping("frontDeleteChat")
+    public ResultVO<?> frontDeleteChat(UserDO user, @RequestBody @Valid @NotNull ChatRemoveVO chatVO) {
+        Long chatId = chatVO.getChatId();
         /*Optional<ChatDO> chatDOOptional = chatRepository.findFirstByIdAndStatus(chatId, ChatStatus.enable);
         if (!chatDOOptional.isPresent()) {
             log.error("被攻击了，出现了不存在的消息:{}", chatId);
@@ -350,9 +347,8 @@ public class ChatController {
 
         //双方都为开启，则关闭，自己变为关闭，对方变为被关闭
         //只要自己未已开启，就可以关闭自己的会话，对方发送时候会看chat下的两个是不是都为开启决定
-        Date curDate = new Date();
-        if (chatUserDO.getStatus().equals(ChatUserStatus.enable)) {
-            chatUserDO.changeStatusClose(curDate);
+        if (chatUserDO.getFrontShow()) {
+            chatUserDO.frontShowFalse();
 //            receiveChatUserDO.changeStatusBeClose(curDate);
 //            chatUserDOS.add(chatUserDO);
 //            chatUserDOS.add(receiveChatUserDO);
@@ -363,8 +359,111 @@ public class ChatController {
             chatUserDO.changeStatusClose(curDate);
             chatUserDOS.add(chatUserDO);
         }*/ else {
-            return new ResultVO<>("无法关闭会话");
+            //不应该走到这里，只有开起中的才能关闭
+            log.error("不应该走到这里，只有展示的才能删除");
+            return new ResultVO<>(ErrorCode.SYSTEM_ERROR);
         }
+        //查询chat
+        chatUserRepository.save(chatUserDO);
+        return new ResultVO<>();
+    }
+
+
+    @PostMapping("removeChat")
+    public ResultVO<?> removeChat(UserDO user, @RequestBody @Valid @NotNull ChatRemoveVO chatVO) {
+        Long chatId = chatVO.getChatId();
+        /*Optional<ChatDO> chatDOOptional = chatRepository.findFirstByIdAndStatus(chatId, ChatStatus.enable);
+        if (!chatDOOptional.isPresent()) {
+            log.error("被攻击了，出现了不存在的消息:{}", chatId);
+            return new ResultVO<>("该聊天不存在");
+        }
+        ChatDO chat = chatDOOptional.get();
+        if (chat.getType().equals(ChatType.system_group)) {
+            return new ResultVO<>("暂时无法删除官方群聊");
+        }*/
+        //查询用户是否有chat权限，并且chat正常
+        ResultVO<ChatUserDO> resultVO = chatUserVerify.checkChatHasUserId(chatId, user.getId());
+        if (resultVO.hasError()) {
+            return new ResultVO<>(resultVO);
+        }
+        ChatUserDO chatUserDO = resultVO.getData();
+
+        /*ResultVO<ChatUserDO> receiverResultVO = chatUserVerify.checkChatHasUserId(chatId, chatUserDO.getReceiveUserId());
+        if (receiverResultVO.hasError()) {
+            return new ResultVO<>(receiverResultVO);
+        }
+        ChatUserDO receiveChatUserDO = receiverResultVO.getData();*/
+
+//        List<ChatUserDO> chatUserDOS = new ArrayList<>();
+
+        //双方都为开启，则关闭，自己变为关闭，对方变为被关闭
+        //只要自己未已开启，就可以关闭自己的会话，对方发送时候会看chat下的两个是不是都为开启决定
+        chatUserDO.closeChat();
+        /*if (chatUserDO.getStatus().equals(ChatUserStatus.enable)) {
+//            receiveChatUserDO.changeStatusBeClose(curDate);
+//            chatUserDOS.add(chatUserDO);
+//            chatUserDOS.add(receiveChatUserDO);
+            //自己为被关闭，对方关闭，自己也可以关闭
+        }*//* else if (chatUserDO.getStatus().equals(ChatUserStatus.enable) &&
+                receiveChatUserDO.getStatus().equals(ChatUserStatus.close)
+        ) {
+            chatUserDO.changeStatusClose(curDate);
+            chatUserDOS.add(chatUserDO);
+        }*//* else {
+            //不应该走到这里，只有开起中的才能关闭
+            log.error("不应该走到这里，只有开起中的才能关闭");
+            return new ResultVO<>(ErrorCode.SYSTEM_ERROR);
+        }*/
+        //查询chat
+        chatUserRepository.save(chatUserDO);
+        return new ResultVO<>();
+    }
+
+    @PostMapping("closeChat")
+    public ResultVO<?> closeChat(UserDO user, @RequestBody @Valid @NotNull ChatRemoveVO chatVO) {
+        Long chatId = chatVO.getChatId();
+        /*Optional<ChatDO> chatDOOptional = chatRepository.findFirstByIdAndStatus(chatId, ChatStatus.enable);
+        if (!chatDOOptional.isPresent()) {
+            log.error("被攻击了，出现了不存在的消息:{}", chatId);
+            return new ResultVO<>("该聊天不存在");
+        }
+        ChatDO chat = chatDOOptional.get();
+        if (chat.getType().equals(ChatType.system_group)) {
+            return new ResultVO<>("暂时无法删除官方群聊");
+        }*/
+        //查询用户是否有chat权限，并且chat正常
+        ResultVO<ChatUserDO> resultVO = chatUserVerify.checkChatHasUserId(chatId, user.getId());
+        if (resultVO.hasError()) {
+            return new ResultVO<>(resultVO);
+        }
+        ChatUserDO chatUserDO = resultVO.getData();
+
+        /*ResultVO<ChatUserDO> receiverResultVO = chatUserVerify.checkChatHasUserId(chatId, chatUserDO.getReceiveUserId());
+        if (receiverResultVO.hasError()) {
+            return new ResultVO<>(receiverResultVO);
+        }
+        ChatUserDO receiveChatUserDO = receiverResultVO.getData();*/
+
+//        List<ChatUserDO> chatUserDOS = new ArrayList<>();
+
+        //双方都为开启，则关闭，自己变为关闭，对方变为被关闭
+        //只要自己未已开启，就可以关闭自己的会话，对方发送时候会看chat下的两个是不是都为开启决定
+        chatUserDO.closeChat();
+        /*if (chatUserDO.getStatus().equals(ChatUserStatus.enable)) {
+//            receiveChatUserDO.changeStatusBeClose(curDate);
+//            chatUserDOS.add(chatUserDO);
+//            chatUserDOS.add(receiveChatUserDO);
+            //自己为被关闭，对方关闭，自己也可以关闭
+        }*//* else if (chatUserDO.getStatus().equals(ChatUserStatus.enable) &&
+                receiveChatUserDO.getStatus().equals(ChatUserStatus.close)
+        ) {
+            chatUserDO.changeStatusClose(curDate);
+            chatUserDOS.add(chatUserDO);
+        }*//* else {
+            //不应该走到这里，只有开起中的才能关闭
+            log.error("不应该走到这里，只有开起中的才能关闭");
+            return new ResultVO<>(ErrorCode.SYSTEM_ERROR);
+        }*/
         //查询chat
         chatUserRepository.save(chatUserDO);
         return new ResultVO<>();

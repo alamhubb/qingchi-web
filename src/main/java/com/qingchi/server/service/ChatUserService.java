@@ -25,13 +25,11 @@ public class ChatUserService {
     ChatUserRepository chatUserRepository;
 
     //登录情况下查询用户有权限的chatuser
+    //初始化和查询chat列表触发的
     public List<ChatVO> getChats(UserDO user) {
         //未登录的情况只插叙你官方的chats
-        List<ChatVO> chatVOS = getChats();
         List<ChatUserDO> chats2 = chatUserRepository.findByChatStatusAndUserIdAndFrontShowTrueOrderByChatTopLevelDescTopFlagDescUpdateTimeDesc(ChatStatus.enable, user.getId());
-        List<ChatVO> chatVOS2 = ChatVO.chatUserDOToVOS(chats2);
-        chatVOS.addAll(chatVOS2);
-        return chatVOS;
+        return ChatVO.chatUserDOToVOS(chats2);
     }
 
     //未登录的情况下查询官方chat，官方群聊

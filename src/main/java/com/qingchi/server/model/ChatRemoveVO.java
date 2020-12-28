@@ -8,6 +8,5 @@ import lombok.Data;
  */
 @Data
 public class ChatRemoveVO {
-    private Long chatUserId;
     private Long chatId;
 }
