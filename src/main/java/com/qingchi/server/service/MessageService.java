@@ -175,7 +175,7 @@ public class MessageService {
             //发送消息
             for (ChatUserDO chatUserDO : chatUserDOS) {
 //                chatUserDO.setLastContent(message.getContent());
-                chatUserDO.setUpdateTime(new Date());
+                chatUserDO.setUpdateTime(curDate);
                 //如果为匹配chat，且为待匹配状态
                 if (ChatType.match.equals(chat.getType()) && CommonStatus.waitMatch.equals(chat.getMatchStatus())) {
                     //则将用户的chat改为匹配成功
