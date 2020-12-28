@@ -116,7 +116,7 @@ public class PayShellOpenChatDomain {
             shellOrderService.createAndSaveContactAndShellOrders(user, receiveUser, ExpenseType.openChat);
         }*/
 
-        ChatVO chatVO = new ChatVO(chatDO, chatUserDO);
+        ChatVO chatVO = new ChatVO(chatDO, chatUserDO, true);
         //需要对方的用户名，昵称。会话未开启
         return new ResultVO<>(chatVO);
     }

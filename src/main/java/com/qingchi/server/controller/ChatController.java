@@ -7,6 +7,7 @@ import com.qingchi.base.constant.ErrorCode;
 import com.qingchi.base.constant.status.ChatStatus;
 import com.qingchi.base.constant.status.ChatUserStatus;
 import com.qingchi.base.constant.status.MessageStatus;
+import com.qingchi.base.modelVO.MessageVO;
 import com.qingchi.base.utils.UserUtils;
 import com.qingchi.server.domain.PayShellOpenChatDomain;
 import com.qingchi.base.model.chat.ChatDO;
@@ -22,13 +23,13 @@ import com.qingchi.base.repository.notify.NotifyRepository;
 import com.qingchi.base.repository.shell.UserContactRepository;
 import com.qingchi.base.service.NotifyService;
 import com.qingchi.base.utils.QingLogger;
-import com.qingchi.server.model.ChatReadVO;
-import com.qingchi.server.model.ChatRemoveVO;
-import com.qingchi.server.model.ChatOpenVO;
-import com.qingchi.server.model.UserIdVO;
+import com.qingchi.server.model.*;
 import com.qingchi.server.service.ChatService;
 import com.qingchi.server.service.ChatUserService;
+import com.qingchi.server.service.MessageService;
 import com.qingchi.server.verify.ChatUserVerify;
+import lombok.Data;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -38,8 +39,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
 import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
-import java.util.ArrayList;
+import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -71,6 +73,8 @@ public class ChatController {
     private FollowRepository followRepository;
     @Resource
     private ChatUserVerify chatUserVerify;
+    @Resource
+    private MessageService messageService;
 
     /**
      * 传入的ids应该为前台不为自己的，且未读的
@@ -200,7 +204,7 @@ public class ChatController {
     //开启对话
     //支付贝壳开启对话
     @PostMapping("openChat")
-    public ResultVO<ChatVO> openChat(UserDO user, @RequestBody @Valid @NotNull ChatOpenVO chatVO) {
+    public ResultVO<ChatVO> openChat(UserDO user, @RequestBody @Valid @NotNull OpenChatVO chatVO) throws IOException {
         Boolean needPayOpen = chatVO.getNeedPayOpen();
 
         //需要查询出来判断状态，区分返回不同的错误消息
@@ -280,6 +284,24 @@ public class ChatController {
         //如果未关注，则扣除贝壳 user, receiveUser,
         ResultVO<ChatVO> resultVO = payShellOpenChatDomain.openChat(chatDO, chatUserDO, receiveChatUserDO, dbNeedPayOpen);
 
+
+        ChatVO chatVO1 = resultVO.getData();
+
+        MessageAddVO messageAddVO = new MessageAddVO();
+        String msgContent = chatVO.getContent();
+        if (StringUtils.isEmpty(msgContent)) {
+            msgContent = "我开起了和您的会话";
+        }
+        messageAddVO.setChatId(chatDO.getId());
+        messageAddVO.setContent(msgContent);
+
+        ResultVO<MessageVO> resultVO1 = messageService.sendMsg(user, messageAddVO);
+        if (resultVO1.hasError()) {
+            return new ResultVO<>(resultVO1);
+        }
+
+        chatVO1.getMessages().add(resultVO1.getData());
+
         /*new ChatVO(chat);
         chat = chatUserDOOptional.map(chatUserDO -> new ChatVO(chatUserDO.getChat())).orElseGet(() -> );*/
         return resultVO;
@@ -318,34 +340,33 @@ public class ChatController {
         }
         ChatUserDO chatUserDO = resultVO.getData();
 
-        ResultVO<ChatUserDO> receiverResultVO = chatUserVerify.checkChatHasUserId(chatId, chatUserDO.getReceiveUserId());
+        /*ResultVO<ChatUserDO> receiverResultVO = chatUserVerify.checkChatHasUserId(chatId, chatUserDO.getReceiveUserId());
         if (receiverResultVO.hasError()) {
             return new ResultVO<>(receiverResultVO);
         }
-        ChatUserDO receiveChatUserDO = receiverResultVO.getData();
+        ChatUserDO receiveChatUserDO = receiverResultVO.getData();*/
 
-        List<ChatUserDO> chatUserDOS = new ArrayList<>();
+//        List<ChatUserDO> chatUserDOS = new ArrayList<>();
 
         //双方都为开启，则关闭，自己变为关闭，对方变为被关闭
+        //只要自己未已开启，就可以关闭自己的会话，对方发送时候会看chat下的两个是不是都为开启决定
         Date curDate = new Date();
-        if (chatUserDO.getStatus().equals(ChatUserStatus.enable) &&
-                receiveChatUserDO.getStatus().equals(ChatUserStatus.enable)
-        ) {
+        if (chatUserDO.getStatus().equals(ChatUserStatus.enable)) {
             chatUserDO.changeStatusClose(curDate);
-            receiveChatUserDO.changeStatusBeClose(curDate);
-            chatUserDOS.add(chatUserDO);
-            chatUserDOS.add(receiveChatUserDO);
+//            receiveChatUserDO.changeStatusBeClose(curDate);
+//            chatUserDOS.add(chatUserDO);
+//            chatUserDOS.add(receiveChatUserDO);
             //自己为被关闭，对方关闭，自己也可以关闭
-        } else if (chatUserDO.getStatus().equals(ChatUserStatus.beClose) &&
+        }/* else if (chatUserDO.getStatus().equals(ChatUserStatus.enable) &&
                 receiveChatUserDO.getStatus().equals(ChatUserStatus.close)
         ) {
             chatUserDO.changeStatusClose(curDate);
             chatUserDOS.add(chatUserDO);
-        } else {
+        }*/ else {
             return new ResultVO<>("无法关闭会话");
         }
         //查询chat
-        chatUserRepository.saveAll(chatUserDOS);
+        chatUserRepository.save(chatUserDO);
         return new ResultVO<>();
     }
 }

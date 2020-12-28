@@ -10,7 +10,7 @@ import javax.validation.constraints.NotNull;
  * @date 2018-11-18 20:48
  */
 @Data
-public class ChatOpenVO {
+public class OpenChatVO {
     @NotNull
     private Long id;
 
