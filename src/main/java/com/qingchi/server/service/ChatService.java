@@ -47,15 +47,6 @@ public class ChatService {
             chatUserDO = chatResult.getMineChatUser();
         }
         ChatVO chatUserVO = new ChatVO(chatUserDO.getChat(), chatUserDO, true);
-
-        //只有为待开启才判断是否需要支付开启
-        if (chatUserVO.getStatus().equals(ChatUserStatus.waitOpen)) {
-            //查询对方是否关注了自己，只有未关注的情况，才能支付
-            Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(receiveUserId, user.getId(), CommonStatus.enable);
-            if (followCount > 0) {
-                chatUserVO.setNeedPayOpen(false);
-            }
-        }
         return chatUserVO;
     }
 
