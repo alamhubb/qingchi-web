@@ -128,6 +128,7 @@ public class MessageService {
                     return new ResultVO<>(ErrorMsg.CHECK_VIOLATION_ERR_MSG);
                 }
             }
+            //发送群聊时更新chat时间
             Date curDate = new Date();
             chat.setUpdateTime(curDate);
             //下版本可删除
