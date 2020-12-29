@@ -120,18 +120,29 @@ public class MessageController {
         }
 
         //用户为空，则判断chat是否为官方类型，如果是允许查询，返回数据
-        if (user == null) {
-            Optional<ChatDO> chatDOOptional = chatRepository.findFirstByIdAndTypeAndStatus(chatId, ChatType.system_group, ChatStatus.enable);
-            if (!chatDOOptional.isPresent()) {
-                log.error("无权限访问的会话");
-                return new ResultVO<>(ErrorCode.SYSTEM_ERROR);
+        Optional<ChatDO> chatDOOptional = chatRepository.findFirstByIdAndStatus(chatId, ChatStatus.enable);
+        if (!chatDOOptional.isPresent()) {
+            log.error("已删除的会话");
+            return new ResultVO<>(ErrorCode.SYSTEM_ERROR);
+        }
+        ChatDO chatDO = chatDOOptional.get();
+        //为群聊，
+        if (chatDO.getType().equals(ChatType.system_group)) {
+            Integer userId = null;
+            if (user != null) {
+                userId = user.getId();
             }
             //查询用户这个chatUser下的消息
             //已经确认过chat为可用的
-            List<MessageDO> messageDOS = messageRepository.findTop31ByChatIdAndStatusAndIdNotInOrderByIdDesc(chatId, ChatStatus.enable, msgIds);
-            messageVOS = MessageVO.messageDOToVOS(messageDOS, null);
+            //则无论是否登陆都值查询chatId下的
+            List<MessageDO> messageDOS = messageRepository.findTop30ByChatIdAndStatusAndIdNotInOrderByIdDesc(chatId, ChatStatus.enable, msgIds);
+            messageVOS = MessageVO.messageDOToVOS(messageDOS, userId);
             //如果不为空，则判断用户是否有chat的权限
         } else {
+            if (user == null) {
+                log.error("无权限访问的会话");
+                return new ResultVO<>(ErrorCode.SYSTEM_ERROR);
+            }
             //如果用户没权限，则异常
             ResultVO<ChatUserDO> resultVO = chatUserVerify.checkChatHasUserId(chatId, user.getId());
             if (resultVO.hasError()) {
