@@ -1,6 +1,7 @@
 package com.qingchi.server.service;
 
 import com.qingchi.base.common.ResultVO;
+import com.qingchi.base.constant.status.ContentStatus;
 import com.qingchi.base.domain.ReportDomain;
 import com.qingchi.base.model.notify.NotifyDO;
 import com.qingchi.base.model.talk.CommentDO;
@@ -83,11 +84,14 @@ public class CommentService {
         // 校验是否触发关键词
         reportDomain.checkKeywordsCreateReport(commentDO);
 
+        //如果不为待审核，才发送通知
+        if (commentDO.getStatus().equals(ContentStatus.enable)){
+            List<NotifyDO> notifyDOS = notifyDomain.saveCreateCommentNotifies(commentDO, commentAddLineTransfer.getTalk(), commentAddLineTransfer.getParentComment(), commentAddLineTransfer.getReplyComment(), requestUser);
 
-        List<NotifyDO> notifyDOS = notifyDomain.saveCreateCommentNotifies(commentDO, commentAddLineTransfer.getTalk(), commentAddLineTransfer.getParentComment(), commentAddLineTransfer.getReplyComment(), requestUser);
+            //推送消息
+            notifyService.sendNotifies(notifyDOS, requestUser);
+        }
 
-        //推送消息
-        notifyService.sendNotifies(notifyDOS, requestUser);
         return new ResultVO<>(new TalkCommentVO(requestUser, commentDO, false));
     }
 
