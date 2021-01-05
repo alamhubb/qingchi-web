@@ -9,19 +9,18 @@ import com.qingchi.base.model.talk.TalkDO;
 import com.qingchi.base.model.talk.TalkImgDO;
 import com.qingchi.base.model.talk.TalkTagDO;
 import com.qingchi.base.model.user.UserDO;
-import com.qingchi.base.platform.qq.QQUtil;
-import com.qingchi.base.platform.weixin.HttpResult;
-import com.qingchi.base.platform.weixin.WxUtil;
 import com.qingchi.base.repository.talk.TalkImgRepository;
 import com.qingchi.base.repository.talk.TalkRepository;
 import com.qingchi.base.repository.talk.TalkTagRepository;
 import com.qingchi.base.store.DistrictStoreUtils;
 import com.qingchi.base.utils.DateUtils;
 import com.qingchi.base.utils.QingLogger;
+import com.qingchi.server.check.ModelContentCheck;
 import com.qingchi.server.model.TalkAddVO;
 import com.qingchi.server.model.TalkDeleteVO;
 import com.qingchi.server.model.TalkImgVO;
 import com.qingchi.server.model.TalkVO;
+import com.qingchi.base.service.IllegalWordService;
 import com.qingchi.server.service.TagService;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.util.CollectionUtils;
@@ -49,6 +48,11 @@ public class TalkController {
 
     @Resource
     private ReportDomain reportDomain;
+    @Resource
+    private IllegalWordService illegalWordService;
+
+    @Resource
+    private ModelContentCheck modelContentCheck;
 
     @PostMapping("deleteTalk")
     @ResponseBody
@@ -150,29 +154,14 @@ public class TalkController {
             return new ResultVO<>("动态最多支持200个字，请精简动态内容");
         }
 
+        ResultVO resultVO = modelContentCheck.checkUserAndContent(talkVO.getContent(), user);
+        //校验内容是否违规
+        if (resultVO.hasError()) {
+            return new ResultVO<>(resultVO);
+        }
+
         //系统管理员则不校验规则
         if (!UserType.system.equals(user.getType())) {
-            if (StringUtils.isEmpty(user.getPhoneNum())) {
-                QingLogger.logger.error("用户未绑定手机号还能调用后台发布功能，用户Id：{}", user.getId());
-                return new ResultVO<>(ErrorMsg.bindPhoneNumCan);
-            }
-            if (!CommonStatus.canPublishContentStatus.contains(user.getStatus())) {
-                return new ResultVO<>(ErrorMsg.userMaybeViolation);
-            }
-            //不为空才进行校验
-            if (StringUtils.isNotEmpty(talkContent)) {
-                if (UserUpdateController.checkHasIllegals(talkContent)) {
-                    return new ResultVO<>(ErrorMsg.CHECK_VIOLATION_ERR_MSG);
-                }
-                HttpResult wxResult = WxUtil.checkContentWxSec(talkContent);
-                if (wxResult.hasError()) {
-                    return new ResultVO<>(ErrorMsg.CHECK_VIOLATION_ERR_MSG);
-                }
-                HttpResult qqResult = QQUtil.checkContentQQSec(talkContent);
-                if (qqResult.hasError()) {
-                    return new ResultVO<>(ErrorMsg.CHECK_VIOLATION_ERR_MSG);
-                }
-            }
             Date curDate = new Date();
             Date oneMinuteBefore = new Date(curDate.getTime() - CommonConst.minute);
             //1分钟内不能发超过1条

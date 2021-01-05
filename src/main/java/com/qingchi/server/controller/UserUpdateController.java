@@ -1,15 +1,12 @@
 package com.qingchi.server.controller;
 
-import com.qingchi.base.config.AppConfigConst;
 import com.qingchi.base.common.ResultVO;
-import com.qingchi.base.constant.ErrorMsg;
 import com.qingchi.base.constant.GenderType;
 import com.qingchi.base.platform.tencent.TencentCloud;
 import com.qingchi.base.platform.weixin.HttpResult;
 import com.qingchi.base.platform.weixin.WxUtil;
 import com.qingchi.base.model.user.UserDO;
 import com.qingchi.base.repository.user.UserRepository;
-import com.qingchi.base.service.UserService;
 import com.qingchi.base.model.user.UserDetailDO;
 import com.qingchi.base.repository.user.UserDetailRepository;
 import com.qingchi.base.repository.user.UserImgRepository;
@@ -17,6 +14,7 @@ import com.qingchi.base.utils.AgeUtils;
 import com.qingchi.base.utils.QingLogger;
 import com.qingchi.server.model.UserDetailVO;
 import com.qingchi.server.model.UserEditVO;
+import com.qingchi.base.service.IllegalWordService;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -28,7 +26,6 @@ import javax.persistence.EntityManager;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import java.util.Date;
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -49,7 +46,7 @@ public class UserUpdateController {
     @Resource
     private UserImgRepository userImgRepository;
     @Resource
-    private UserService userService;
+    private IllegalWordService illegalWordService;
 
     @PostMapping("updateAvatar")
     public ResultVO<?> updateAvatar(@Valid @NotNull String avatar, UserDO user) {
@@ -70,7 +67,11 @@ public class UserUpdateController {
         if (nickname.length() > 6) {
             return new ResultVO<>("昵称长度不能大于6");
         } else {
-            if (checkHasIllegals(nickname)) return new ResultVO<>(ErrorMsg.CHECK_VIOLATION_ERR_MSG);
+            ResultVO resultVO = illegalWordService.checkHasIllegals(nickname);
+            //校验内容是否违规
+            if (resultVO.hasError()) {
+                return new ResultVO<>(resultVO);
+            }
             if (TencentCloud.textIsViolation(nickname)) {
                 return new ResultVO<>("昵称包含违规内容，禁止修改，请修改后重试");
             }
@@ -98,7 +99,11 @@ public class UserUpdateController {
                 return new ResultVO<>("市县区名称长度不能大于10");
             } else {
                 String userLocation = userEditVO.getLocation();
-                if (checkHasIllegals(userLocation)) return new ResultVO<>(ErrorMsg.CHECK_VIOLATION_ERR_MSG);
+                ResultVO resultVO = illegalWordService.checkHasIllegals(userLocation);
+                //校验内容是否违规
+                if (resultVO.hasError()) {
+                    return new ResultVO<>(resultVO);
+                }
                 if (TencentCloud.textIsViolation(userLocation)) {
                     return new ResultVO<>("地区名称违规");
                 }
@@ -126,8 +131,10 @@ public class UserUpdateController {
                     } else if (wxAccount.length() < 6) {
                         return new ResultVO<>("微信账户名必须大于5个字符，例如：491369310");
                     } else {
-                        if (checkHasIllegals(wxAccount)) {
-                            return new ResultVO<>(ErrorMsg.CHECK_VIOLATION_ERR_MSG);
+                        ResultVO resultVO = illegalWordService.checkHasIllegals(wxAccount);
+                        //校验内容是否违规
+                        if (resultVO.hasError()) {
+                            return new ResultVO<>(resultVO);
                         }
                         if (TencentCloud.textIsViolation(wxAccount)) {
                             return new ResultVO<>("微信账户违规");
@@ -147,8 +154,10 @@ public class UserUpdateController {
                     } else if (qqAccount.length() < 5) {
                         return new ResultVO<>("qq号必须大于4个字符，例如：491369310");
                     } else {
-                        if (checkHasIllegals(qqAccount)) {
-                            return new ResultVO<>(ErrorMsg.CHECK_VIOLATION_ERR_MSG);
+                        ResultVO resultVO = illegalWordService.checkHasIllegals(qqAccount);
+                        //校验内容是否违规
+                        if (resultVO.hasError()) {
+                            return new ResultVO<>(resultVO);
                         }
                         if (TencentCloud.textIsViolation(qqAccount)) {
                             return new ResultVO<>("qq号违规");
@@ -168,8 +177,10 @@ public class UserUpdateController {
                     } else if (wbAccount.length() < 2) {
                         return new ResultVO<>("微博名称必须大于1个字符，例如：清池");
                     } else {
-                        if (checkHasIllegals(wbAccount)) {
-                            return new ResultVO<>(ErrorMsg.CHECK_VIOLATION_ERR_MSG);
+                        ResultVO resultVO = illegalWordService.checkHasIllegals(wbAccount);
+                        //校验内容是否违规
+                        if (resultVO.hasError()) {
+                            return new ResultVO<>(resultVO);
                         }
                         if (TencentCloud.textIsViolation(wbAccount)) {
                             return new ResultVO<>("微博名称违规");
@@ -201,8 +212,11 @@ public class UserUpdateController {
                 } else if (contactAccount.length() < 5) {
                     return new ResultVO<>("联系方式必须大于4个字符，例如：vx:491369310");
                 } else {
-                    if (checkHasIllegals(contactAccount))
-                        return new ResultVO<>(ErrorMsg.CHECK_VIOLATION_ERR_MSG);
+                    ResultVO resultVO = illegalWordService.checkHasIllegals(contactAccount);
+                    //校验内容是否违规
+                    if (resultVO.hasError()) {
+                        return new ResultVO<>(resultVO);
+                    }
                     if (TencentCloud.textIsViolation(contactAccount)) {
                         return new ResultVO<>("联系方式违规");
                     }
@@ -217,16 +231,5 @@ public class UserUpdateController {
         userDetailRepository.save(userDetailDO);
         user.setUpdateTime(new Date());
         return new ResultVO<>(new UserDetailVO(userRepository.save(user), true));
-    }
-
-    public static boolean checkHasIllegals(String content) {
-        List<String> illegals = AppConfigConst.illegals;
-        for (String illegal : illegals) {
-            if (StringUtils.isNotEmpty(illegal) && StringUtils.containsIgnoreCase(content, illegal)) {
-                QingLogger.logger.info("发布了涉污动态，关键词：{}，内容：{}", illegal, content);
-                return true;
-            }
-        }
-        return false;
     }
 }

@@ -14,6 +14,7 @@ import com.qingchi.base.redis.TagTypeVO;
 import com.qingchi.base.redis.TagVO;
 import com.qingchi.base.repository.tag.TagRepository;
 import com.qingchi.base.repository.tag.TagTypeRepository;
+import com.qingchi.base.service.IllegalWordService;
 import com.qingchi.base.store.TagStoreUtils;
 import com.qingchi.base.utils.QingLogger;
 import com.qingchi.server.model.TagAddVO;
@@ -41,7 +42,7 @@ public class TagController {
     @Resource
     private TagStoreUtils tagQueryRepository;
     @Resource
-    private TagTypeRepository tagTypeRepository;
+    private IllegalWordService illegalWordService;
 
     @PostMapping("addTag")
     public ResultVO<TagVO> addTag(UserDO user, @RequestBody @Valid TagAddVO tagAddVO) {
@@ -49,13 +50,12 @@ public class TagController {
         if (tagName.length() > 4) {
             return new ResultVO<>("话题最多支持四个字");
         }
-        List<String> illegals = AppConfigConst.illegals;
-        for (String illegal : illegals) {
-            if (StringUtils.isNotEmpty(illegal) && StringUtils.containsIgnoreCase(tagName, illegal)) {
-                QingLogger.logger.info("发布了涉污话题，关键词：{}，内容：{}", illegal, tagName);
-                return new ResultVO<>(ErrorMsg.CHECK_VIOLATION_ERR_MSG);
-            }
+        ResultVO resultVO = illegalWordService.checkHasIllegals(tagName);
+        //校验内容是否违规
+        if (resultVO.hasError()) {
+            return new ResultVO<>(resultVO);
         }
+
         Optional<TagDO> optionalTagDO = tagRepository.findOneByName(tagName);
         //toDO 这里有坑，就是没有查询标签状态，如果标签已经禁用，这里也可以直接用了
         if (optionalTagDO.isPresent()) {
