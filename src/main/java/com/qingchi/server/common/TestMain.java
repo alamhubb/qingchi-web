@@ -1,30 +1,20 @@
 package com.qingchi.server.common;
 
+import com.qingchi.base.utils.KeywordsUtils;
+
 import java.util.*;
 
 public class TestMain {
     public static void main(String[] args) {
         String text = "找个18到22的小姐姐，来打王者呀，上单凯爹在此。技术一般，不嫌弃的留微信！";
-        int textLength = text.length();
-        Map<String, Integer> keyMap = new HashMap<>();
-
-        for (int i = 0; i < textLength; i++) {
-            int keyMaxCount = 9;
-            for (int j = 0; j < keyMaxCount; j++) {
-                int endIndex = i + 2 + j;
-                if (endIndex > textLength) {
-                    break;
-                }
-                String key = text.substring(i, endIndex);
-                keyMap.merge(key, 1, Integer::sum);
-            }
-        }
+        Map<String, Integer> keyMap = KeywordsUtils.chineseWordSegmentationGetKeywordsMap(text);
 
         Map<String, Integer> sortMap = sortMapByValue(keyMap);
         for (Map.Entry<String, Integer> entry : sortMap.entrySet()) {
             System.out.println(entry.getKey());
             System.out.println(entry.getValue());
         }
+        System.out.println(keyMap.size());
     }
 
     public static Map<String, Integer> sortMapByValue(Map<String, Integer> oriMap) {
