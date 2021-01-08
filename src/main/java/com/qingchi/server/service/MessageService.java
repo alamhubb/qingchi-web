@@ -6,10 +6,8 @@ import com.qingchi.base.config.redis.RedisSubListenerConfig;
 import com.qingchi.base.constant.ChatType;
 import com.qingchi.base.constant.CommonStatus;
 import com.qingchi.base.constant.ErrorMsg;
-import com.qingchi.base.constant.UserType;
 import com.qingchi.base.constant.status.ChatStatus;
 import com.qingchi.base.constant.status.ChatUserStatus;
-import com.qingchi.base.constant.status.MessageReceiveStatus;
 import com.qingchi.base.domain.ReportDomain;
 import com.qingchi.base.model.chat.ChatDO;
 import com.qingchi.base.model.chat.ChatUserDO;
@@ -17,7 +15,6 @@ import com.qingchi.base.model.chat.MessageDO;
 import com.qingchi.base.model.chat.MessageReceiveDO;
 import com.qingchi.base.model.notify.NotifyDO;
 import com.qingchi.base.model.user.UserDO;
-import com.qingchi.base.modelVO.ChatVO;
 import com.qingchi.base.modelVO.MessageVO;
 import com.qingchi.base.modelVO.NotifyVO;
 import com.qingchi.base.platform.qq.QQUtil;
@@ -29,31 +26,24 @@ import com.qingchi.base.repository.chat.MessageReceiveRepository;
 import com.qingchi.base.repository.chat.MessageRepository;
 import com.qingchi.base.repository.notify.NotifyRepository;
 import com.qingchi.base.repository.user.UserRepository;
+import com.qingchi.base.service.IllegalWordService;
 import com.qingchi.base.service.NotifyService;
 import com.qingchi.base.service.ReportService;
 import com.qingchi.base.utils.JsonUtils;
-import com.qingchi.base.utils.QingLogger;
-import com.qingchi.server.controller.UserUpdateController;
+import com.qingchi.server.check.ModelContentCheck;
 import com.qingchi.server.model.MessageAddVO;
-import com.qingchi.server.model.MessageQueryVO;
-import com.qingchi.server.model.MsgDeleteVO;
 import com.qingchi.server.verify.ChatUserVerify;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.annotation.Resource;
-import javax.validation.Valid;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * @author qinkaiyuan
@@ -85,6 +75,10 @@ public class MessageService {
     private ReportDomain reportDomain;
     @Resource
     private ChatUserVerify chatUserVerify;
+    @Resource
+    private IllegalWordService illegalWordService;
+    @Resource
+    private ModelContentCheck modelContentCheck;
 
 
     public ResultVO<MessageVO> sendMsg(UserDO user, MessageAddVO msgAddVO) throws IOException {
@@ -93,15 +87,11 @@ public class MessageService {
         if (StringUtils.isEmpty(talkContent)) {
             return new ResultVO<>("不能发布空内容");
         }
-        if (StringUtils.isEmpty(user.getPhoneNum())) {
-            QingLogger.logger.error("用户未绑定手机号还能调用后台发布功能，用户Id：{}", user.getId());
-            return new ResultVO<>(ErrorMsg.bindPhoneNumCan);
+        ResultVO resultVOUser = modelContentCheck.checkUser(user);
+        //校验内容是否违规
+        if (resultVOUser.hasError()) {
+            return new ResultVO<>(resultVOUser);
         }
-
-        if (!CommonStatus.canPublishContentStatus.contains(user.getStatus())) {
-            return new ResultVO<>(ErrorMsg.userMaybeViolation);
-        }
-
 
         ResultVO<ChatUserDO> resultVO = chatUserVerify.checkChatHasUserIdAndEnable(chatId, user.getId());
         if (resultVO.hasError()) {
@@ -114,20 +104,12 @@ public class MessageService {
         //只管群聊
         //查看chat的类型
         if (chat.getType().equals(ChatType.system_group)) {
-            //不为空才进行校验
-            if (StringUtils.isNotEmpty(talkContent)) {
-                if (UserUpdateController.checkHasIllegals(talkContent)) {
-                    return new ResultVO<>(ErrorMsg.CHECK_VIOLATION_ERR_MSG);
-                }
-                HttpResult wxResult = WxUtil.checkContentWxSec(talkContent);
-                if (wxResult.hasError()) {
-                    return new ResultVO<>(ErrorMsg.CHECK_VIOLATION_ERR_MSG);
-                }
-                HttpResult qqResult = QQUtil.checkContentQQSec(talkContent);
-                if (qqResult.hasError()) {
-                    return new ResultVO<>(ErrorMsg.CHECK_VIOLATION_ERR_MSG);
-                }
+            ResultVO resultContent = modelContentCheck.checkContent(talkContent);
+            //校验内容是否违规
+            if (resultContent.hasError()) {
+                return new ResultVO<>(resultContent);
             }
+
             //发送群聊时更新chat时间
             Date curDate = new Date();
             chat.setUpdateTime(curDate);

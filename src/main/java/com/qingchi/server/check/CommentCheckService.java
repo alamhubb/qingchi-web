@@ -1,25 +1,17 @@
 package com.qingchi.server.check;
 
 import com.qingchi.base.common.ResultVO;
-import com.qingchi.base.constant.CommonStatus;
-import com.qingchi.base.constant.ErrorMsg;
 import com.qingchi.base.constant.UserType;
 import com.qingchi.base.model.talk.CommentDO;
 import com.qingchi.base.model.talk.TalkDO;
 import com.qingchi.base.model.user.UserDO;
-import com.qingchi.base.platform.qq.QQUtil;
-import com.qingchi.base.platform.weixin.HttpResult;
-import com.qingchi.base.platform.weixin.WxUtil;
 import com.qingchi.base.repository.talk.CommentRepository;
 import com.qingchi.base.repository.notify.NotifyRepository;
 import com.qingchi.base.repository.talk.TalkRepository;
 import com.qingchi.base.service.NotifyService;
-import com.qingchi.base.service.ReportService;
 import com.qingchi.base.service.ViolationService;
-import com.qingchi.base.utils.QingLogger;
-import com.qingchi.server.controller.UserUpdateController;
 import com.qingchi.server.model.CommentAddVO;
-import org.apache.commons.lang.StringUtils;
+import com.qingchi.base.service.IllegalWordService;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
 
@@ -50,7 +42,9 @@ public class CommentCheckService {
     @Resource
     private ViolationService violationService;
     @Resource
-    private ReportService reportService;
+    private IllegalWordService illegalWordService;
+    @Resource
+    private ModelContentCheck modelContentCheck;
 
   /*  @Resource
     CommentRepository comRep;
@@ -62,34 +56,12 @@ public class CommentCheckService {
 
     //校验添加新增comment的评论是否正确
     public ResultVO<CommentAddLineTransfer> checkCommentAddVO(CommentAddVO addVO, UserDO requestUser) {
-
-        //如果不为系统管理员，只有管理员才能评论置顶内容
-        if (!UserType.system.equals(requestUser.getType())) {
-            if (StringUtils.isEmpty(requestUser.getPhoneNum())) {
-                QingLogger.logger.error("用户未绑定手机号还能调用后台发布功能，用户Id：{}", requestUser.getId());
-                return new ResultVO<>(ErrorMsg.bindPhoneNumCan);
-            }
-            if (!CommonStatus.canPublishContentStatus.contains(requestUser.getStatus())) {
-                return new ResultVO<>(ErrorMsg.userMaybeViolation);
-            }
-
-            String talkContent = addVO.getContent();
-            //不为空才进行校验
-            if (StringUtils.isNotEmpty(talkContent)) {
-                //校验内容是否违规
-                if (UserUpdateController.checkHasIllegals(talkContent)) {
-                    return new ResultVO<>(ErrorMsg.CHECK_VIOLATION_ERR_MSG);
-                }
-                HttpResult wxResult = WxUtil.checkContentWxSec(talkContent);
-                if (wxResult.hasError()) {
-                    return new ResultVO<>(ErrorMsg.CHECK_VIOLATION_ERR_MSG);
-                }
-                HttpResult qqResult = QQUtil.checkContentQQSec(talkContent);
-                if (qqResult.hasError()) {
-                    return new ResultVO<>(ErrorMsg.CHECK_VIOLATION_ERR_MSG);
-                }
-            }
+        ResultVO resultVO = modelContentCheck.checkUserAndContent(addVO.getContent(),requestUser);
+        //校验内容是否违规
+        if (resultVO.hasError()) {
+            return new ResultVO<>(resultVO);
         }
+
         //因为与下面有关联所以拿到了上面
         Optional<TalkDO> talkOptional = talkRepository.findById(addVO.getTalkId());
         if (!talkOptional.isPresent()) {
