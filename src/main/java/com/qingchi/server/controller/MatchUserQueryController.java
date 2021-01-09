@@ -4,6 +4,7 @@ import com.qingchi.base.common.ResultVO;
 import com.qingchi.base.constant.CommonStatus;
 import com.qingchi.base.constant.GenderType;
 import com.qingchi.base.constant.MatchType;
+import com.qingchi.base.constant.status.UserStatus;
 import com.qingchi.base.repository.talk.TalkRepository;
 import com.qingchi.base.model.user.UserDO;
 import com.qingchi.base.repository.user.UserRepository;
@@ -55,7 +56,7 @@ public class MatchUserQueryController {
             //未登录情况下查询首页匹配用户
             //如果用户为空，则未登录用户
             //查询颜值最高的那批用户，男生女生都算着
-            userDOs = userRepository.queryMatchUsersByUserNotLogged(queryVO.getUserIds(), CommonStatus.enable);
+            userDOs = userRepository.queryMatchUsersByUserNotLogged(queryVO.getUserIds(), UserStatus.enable);
         } else {
             //查询出符合条件的用户信息显示
             /**
@@ -76,12 +77,12 @@ public class MatchUserQueryController {
             //requestRepository.saveAll(matchRequests);
             //更新他们的被查看次数等信息
             if (MatchType.ilike.equals(queryVO.getMatchType())) {
-                userDOs = userRepository.queryILikeMatchUsers(user.getId(), queryVO.getUserIds(), MatchType.like, CommonStatus.enable);
+                userDOs = userRepository.queryILikeMatchUsers(user.getId(), queryVO.getUserIds(), MatchType.like, UserStatus.enable);
             } else if (MatchType.likeMe.equals(queryVO.getMatchType())) {
-                userDOs = userRepository.queryLikeMeMatchUsers(user.getId(), queryVO.getUserIds(), MatchType.like, CommonStatus.enable);
+                userDOs = userRepository.queryLikeMeMatchUsers(user.getId(), queryVO.getUserIds(), MatchType.like, UserStatus.enable);
             } else {
                 //可以查看所有人，从喜欢那里控制可以喜欢谁
-                userDOs = userRepository.queryMatchUsers(user.getId(), GenderType.genders, queryVO.getUserIds(), MatchType.like, MatchType.operatedes, CommonStatus.enable);
+                userDOs = userRepository.queryMatchUsers(user.getId(), GenderType.genders, queryVO.getUserIds(), MatchType.like, MatchType.operatedes, UserStatus.enable);
             }
             //更新他们的被查看次数等信息
             if (!userDOs.isEmpty()) {

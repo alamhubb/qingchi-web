@@ -2,6 +2,9 @@ package com.qingchi.server.controller;
 
 import com.qingchi.base.common.ResultVO;
 import com.qingchi.base.constant.*;
+import com.qingchi.base.constant.status.BaseStatus;
+import com.qingchi.base.constant.status.ContentStatus;
+import com.qingchi.base.constant.status.UserStatus;
 import com.qingchi.base.entity.UserImgUtils;
 import com.qingchi.base.model.user.*;
 import com.qingchi.base.platform.tencent.TencentCloud;
@@ -104,7 +107,7 @@ public class UserDetailController {
 
     @PostMapping("addImg")
     public ResultVO<UserDetailVO> addImg(UserDO user, @RequestBody @Valid UserImgVO img) {
-        if (!CommonStatus.enable.equals(user.getStatus())) {
+        if (!UserStatus.enable.equals(user.getStatus())) {
             return new ResultVO<>(ErrorMsg.userMaybeViolation);
         }
         List<UserImgDO> userImgDOS = UserImgUtils.getImgs(user.getId());
@@ -114,7 +117,7 @@ public class UserDetailController {
         UserImgDO userImgDO = img.toUserImgDO(user, imgUrl);
         //如果用户已认证，则上传的照片必须为已认证的
         if (user.getIsSelfAuth()) {
-            Optional<IdentityImgDO> optionalIdentityImgDO = identityImgRepository.findFirstByUserIdAndStatusOrderByIdDesc(user.getId(), CommonStatus.enable);
+            Optional<IdentityImgDO> optionalIdentityImgDO = identityImgRepository.findFirstByUserIdAndStatusOrderByIdDesc(user.getId(), UserStatus.enable);
             if (optionalIdentityImgDO.isPresent()) {
                 IdentityImgDO identityImgDO = optionalIdentityImgDO.get();
                 boolean isAuth = TencentCloud.imgAuth(userImgDO.getSrc(), identityImgDO.getSrc());
@@ -145,7 +148,7 @@ public class UserDetailController {
 
     @PostMapping("deleteImg")
     public ResultVO<UserDetailVO> deleteImg(UserDO user, @RequestBody UserImgDeleteVO img) {
-        if (!CommonStatus.enable.equals(user.getStatus())) {
+        if (!UserStatus.enable.equals(user.getStatus())) {
             return new ResultVO<>(ErrorMsg.userMaybeViolation);
         }
         List<UserImgDO> userImgDOS = UserImgUtils.getImgs(user.getId());
@@ -153,7 +156,7 @@ public class UserDetailController {
             Optional<UserImgDO> userImgDOOptional = userImgRepository.getUserImgByUserIdAndId(user.getId(), img.getId());
             if (userImgDOOptional.isPresent()) {
                 UserImgDO userImg = userImgDOOptional.get();
-                userImg.setStatus(CommonStatus.delete);
+                userImg.setStatus(ContentStatus.delete);
                 userImg.setUpdateTime(new Date());
                 userImgRepository.save(userImg);
             }
@@ -181,7 +184,7 @@ public class UserDetailController {
         Optional<UserDO> userDOOptional = userRepository.findById(userId);
         if (userDOOptional.isPresent()) {
             UserDO beUser = userDOOptional.get();
-            Optional<UserContactDO> userContactDOOptional = userContactRepository.findFirstByUserIdAndBeUserIdAndStatusAndType(user.getId(), beUser.getId(), CommonStatus.enable, ExpenseType.contact);
+            Optional<UserContactDO> userContactDOOptional = userContactRepository.findFirstByUserIdAndBeUserIdAndStatusAndType(user.getId(), beUser.getId(), BaseStatus.enable, ExpenseType.contact);
             //已经获取过了，不应该还能获取
             if (userContactDOOptional.isPresent()) {
                 QingLogger.logger.error("已经获取过用户联系方式了，不应该还能获取");
@@ -221,7 +224,7 @@ public class UserDetailController {
         destroyAccount.setCreateTime(cur);
         //七天后的时间
         destroyAccount.setEndTime(new Date(cur.getTime() + CommonConst.day * 7));
-        destroyAccount.setStatus(CommonStatus.enable);
+        destroyAccount.setStatus(UserStatus.enable);
         destroyAccount.setUserId(user.getId());
         destroyAccountRepository.save(destroyAccount);
         return new ResultVO<>();

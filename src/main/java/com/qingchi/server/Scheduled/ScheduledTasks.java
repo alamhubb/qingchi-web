@@ -5,6 +5,7 @@ import com.qingchi.base.common.ViolationKeywordsService;
 import com.qingchi.base.config.websocket.WebsocketServer;
 import com.qingchi.base.constant.CommonConst;
 import com.qingchi.base.constant.CommonStatus;
+import com.qingchi.base.constant.status.UserStatus;
 import com.qingchi.base.repository.user.UserRepository;
 import com.qingchi.base.utils.QingLogger;
 import org.springframework.context.annotation.Bean;
@@ -61,7 +62,7 @@ public class ScheduledTasks {
     @Scheduled(fixedRate = 600000)
     public void updateUserStatus() {
         Date curDate = new Date();
-        Integer count = userRepository.updateUserVioStatus(CommonStatus.violation, CommonStatus.enable, curDate);
+        Integer count = userRepository.updateUserVioStatus(UserStatus.violation, UserStatus.enable, curDate);
         QingLogger.logger.info("今日时间{}，解封用户数量：{}", curDate, count);
     }
 

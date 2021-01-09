@@ -2,6 +2,7 @@ package com.qingchi.server.controller;
 
 import com.qingchi.base.common.ResultVO;
 import com.qingchi.base.constant.CommonStatus;
+import com.qingchi.base.constant.status.BaseStatus;
 import com.qingchi.base.model.user.UserDO;
 import com.qingchi.base.model.user.ShellOrderDO;
 import com.qingchi.base.repository.shell.ShellOrderRepository;
@@ -22,7 +23,7 @@ public class ShellController {
 
     @PostMapping("queryShells")
     public ResultVO<List<ShellOrderVO>> queryShells(UserDO user) {
-        List<ShellOrderDO> shellOrderDOS = shellOrderRepository.findAllByUserIdAndStatusOrderByCreateTimeDesc(user.getId(), CommonStatus.enable);
+        List<ShellOrderDO> shellOrderDOS = shellOrderRepository.findAllByUserIdAndStatusOrderByCreateTimeDesc(user.getId(), BaseStatus.enable);
         return new ResultVO<>(shellOrderDOS.stream().map(ShellOrderVO::new).collect(Collectors.toList()));
     }
 }

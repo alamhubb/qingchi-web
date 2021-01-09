@@ -2,6 +2,7 @@ package com.qingchi.server.controller;
 
 import com.qingchi.base.common.ResultVO;
 import com.qingchi.base.constant.*;
+import com.qingchi.base.constant.status.ContentStatus;
 import com.qingchi.base.domain.ReportDomain;
 import com.qingchi.base.model.system.DistrictDO;
 import com.qingchi.base.model.talk.TagDO;
@@ -74,7 +75,7 @@ public class TalkController {
             return new ResultVO<>("系统异常，无法删除不属于自己的动态");
         }
         talkDO.setUpdateTime(new Date());
-        talkDO.setStatus(CommonStatus.delete);
+        talkDO.setStatus(ContentStatus.delete);
         talkDO.setDeleteReason("用户自行删除");
         talkRepository.save(talkDO);
         return new ResultVO<>();

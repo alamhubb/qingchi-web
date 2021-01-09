@@ -162,7 +162,7 @@ public class MessageService {
                 //如果为匹配chat，且为待匹配状态
                 if (ChatType.match.equals(chat.getType()) && CommonStatus.waitMatch.equals(chat.getMatchStatus())) {
                     //则将用户的chat改为匹配成功
-                    chatUserDO.setStatus(CommonStatus.enable);
+                    chatUserDO.setStatus(ChatUserStatus.enable);
                 }
                 //获取当起chatUser的userId
                 Integer chatUserId = chatUserDO.getUserId();

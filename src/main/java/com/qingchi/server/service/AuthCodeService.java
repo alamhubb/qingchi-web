@@ -7,6 +7,7 @@ import com.qingchi.base.common.ResultVO;
 import com.qingchi.base.constant.CommonConst;
 import com.qingchi.base.constant.CommonStatus;
 import com.qingchi.base.constant.ErrorMsg;
+import com.qingchi.base.constant.status.UserStatus;
 import com.qingchi.base.model.account.AuthenticationDO;
 import com.qingchi.base.model.user.UserDO;
 import com.qingchi.base.model.user.UserLogDO;
@@ -66,7 +67,7 @@ public class AuthCodeService {
         Optional<UserDO> userDOOptional = userRepository.findFirstByPhoneNumOrderByIdAsc(phoneNum);
         if (userDOOptional.isPresent()) {
             UserDO userDO = userDOOptional.get();
-            if (userDO.getStatus().equals(CommonStatus.violation)) {
+            if (userDO.getStatus().equals(UserStatus.violation)) {
                 return new ResultVO<>(ErrorMsgUtil.getErrorCode605ContactServiceValue(userDO.getViolationEndTime()));
             }
         }

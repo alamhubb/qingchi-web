@@ -1,6 +1,7 @@
 package com.qingchi.server.model;
 
 import com.qingchi.base.constant.CommonStatus;
+import com.qingchi.base.constant.status.ContentStatus;
 import com.qingchi.base.entity.CommentUtils;
 import com.qingchi.base.model.talk.CommentDO;
 import com.qingchi.base.repository.talk.CommentRepository;
@@ -86,7 +87,7 @@ public class TalkCommentVO {
                     // 用户不为 null && 自己的评论才显示
                     return (user != null && talkCommentDO.getUserId().equals(user.getId()))
                             //或者评论的状态不为预审核
-                            || !CommonStatus.preAudit.equals(talkCommentDO.getStatus());
+                            || !ContentStatus.preAudit.equals(talkCommentDO.getStatus());
                 })
                 .map(talkCommentDO -> new TalkCommentVO(user, talkCommentDO, showAll)).collect(Collectors.toList());
     }

@@ -2,6 +2,7 @@ package com.qingchi.server.controller;
 
 import com.qingchi.base.constant.status.ChatStatus;
 import com.qingchi.base.constant.status.ChatUserStatus;
+import com.qingchi.base.constant.status.ContentStatus;
 import com.qingchi.base.constant.status.MessageReceiveStatus;
 import com.qingchi.base.domain.ReportDomain;
 import com.qingchi.base.model.chat.ChatDO;
@@ -213,7 +214,7 @@ public class MessageController {
                 QingLogger.logger.warn("有人尝试删除不属于自己的消息,用户名:{},id:{},尝试删除msgId：{}", user.getNickname(), user.getId(), msgDO.getId());
                 return new ResultVO<>("系统异常，无法删除不属于自己的动态");
             }
-            msgDO.setStatus(CommonStatus.delete);
+            msgDO.setStatus(ContentStatus.delete);
             msgDO.setDeleteReason("用户自行删除");
         }
         msgDO.setUpdateTime(new Date());

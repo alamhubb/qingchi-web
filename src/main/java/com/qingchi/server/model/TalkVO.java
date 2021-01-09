@@ -1,6 +1,7 @@
 package com.qingchi.server.model;
 
 import com.qingchi.base.constant.CommonStatus;
+import com.qingchi.base.constant.status.BaseStatus;
 import com.qingchi.base.model.system.DistrictDO;
 import com.qingchi.base.model.talk.TagDO;
 import com.qingchi.base.model.talk.TalkDO;
@@ -169,7 +170,7 @@ public class TalkVO {
             }
             //他人需要判断
             if (!mineUser.getId().equals(talkUser.getId())) {
-                Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(mineUser.getId(), talkUser.getId(), CommonStatus.enable);
+                Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(mineUser.getId(), talkUser.getId(), BaseStatus.enable);
                 this.hasFollowed = followCount > 0;
             } else {
                 //为自己不可关注

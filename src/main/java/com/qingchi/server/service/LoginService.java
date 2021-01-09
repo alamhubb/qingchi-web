@@ -3,6 +3,7 @@ package com.qingchi.server.service;
 import com.qingchi.base.config.ResultException;
 import com.qingchi.base.common.ResultVO;
 import com.qingchi.base.constant.*;
+import com.qingchi.base.constant.status.UserStatus;
 import com.qingchi.base.model.account.AccountDO;
 import com.qingchi.base.model.notify.NotifyDO;
 import com.qingchi.base.model.user.TokenDO;
@@ -280,7 +281,7 @@ public class LoginService {
             accountDO = optionalAccount.get();
             dbUser = UserUtils.get(accountDO.getUserId());
             //如果账号被封禁则报错
-            if (CommonStatus.violation.equals(dbUser.getStatus())) {
+            if (UserStatus.violation.equals(dbUser.getStatus())) {
                 //账号被封禁，多少天后解封
                 return new ResultVO<>(ErrorMsgUtil.getErrorCode605ContactServiceValue(dbUser.getViolationEndTime()));
             }

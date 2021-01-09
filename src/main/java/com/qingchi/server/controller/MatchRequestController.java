@@ -5,6 +5,8 @@ import com.qingchi.base.constant.CommonStatus;
 import com.qingchi.base.constant.ErrorCode;
 import com.qingchi.base.constant.ErrorMsg;
 import com.qingchi.base.constant.MatchType;
+import com.qingchi.base.constant.status.BaseStatus;
+import com.qingchi.base.constant.status.UserStatus;
 import com.qingchi.base.entity.UserImgUtils;
 import com.qingchi.base.model.match.MatchRequestDO;
 import com.qingchi.base.model.user.UserDO;
@@ -59,7 +61,7 @@ public class MatchRequestController {
             QingLogger.logger.error("用户未绑定手机号还能调用后台发布功能，用户Id：{}", user.getId());
             return new ResultVO<>(ErrorMsg.bindPhoneNumCan);
         }
-        if (!CommonStatus.enable.equals(user.getStatus())) {
+        if (!UserStatus.enable.equals(user.getStatus())) {
             return new ResultVO<>(ErrorMsg.userMaybeViolation);
         }
 
@@ -141,7 +143,7 @@ public class MatchRequestController {
             QingLogger.logger.error("用户未绑定手机号还能调用后台发布功能，用户Id：{}", user.getId());
             return new ResultVO<>(ErrorMsg.bindPhoneNumCan);
         }
-        if (!CommonStatus.enable.equals(user.getStatus())) {
+        if (!UserStatus.enable.equals(user.getStatus())) {
             return new ResultVO<>(ErrorMsg.userMaybeViolation);
         }
         List<UserImgDO> userImgDOS = UserImgUtils.getImgs(user.getId());

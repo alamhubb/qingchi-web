@@ -4,6 +4,7 @@ import com.qingchi.base.common.ResultVO;
 import com.qingchi.base.constant.ChatType;
 import com.qingchi.base.constant.CommonStatus;
 import com.qingchi.base.constant.ErrorCode;
+import com.qingchi.base.constant.status.BaseStatus;
 import com.qingchi.base.constant.status.ChatStatus;
 import com.qingchi.base.constant.status.ChatUserStatus;
 import com.qingchi.base.constant.status.MessageStatus;
@@ -232,7 +233,7 @@ public class ChatController {
         Integer receiveUserId = chatUserDO.getReceiveUserId();
 
         //查询对方是否关注了自己，只有未关注的情况，才能支付
-        Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(receiveUserId, chatUserDO.getUserId(), CommonStatus.enable);
+        Integer followCount = followRepository.countByUserIdAndBeUserIdAndStatus(receiveUserId, chatUserDO.getUserId(), BaseStatus.enable);
 
         //小于1，需要付费支付
         Boolean dbNeedPayOpen = followCount < 1;
