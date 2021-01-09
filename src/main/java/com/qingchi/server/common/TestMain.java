@@ -1,46 +1,24 @@
 package com.qingchi.server.common;
 
+import com.huaban.analysis.jieba.JiebaSegmenter;
+import com.huaban.analysis.jieba.SegToken;
 import com.qingchi.base.utils.KeywordsUtils;
 
 import java.util.*;
 
 public class TestMain {
     public static void main(String[] args) {
-        String text = "找个18到22的小姐姐，来打王者呀，上单凯爹在此。技术一般，不嫌弃的留微信！";
-        Map<String, Integer> keyMap = KeywordsUtils.chineseWordSegmentationGetKeywordsMap(text);
-
-        Map<String, Integer> sortMap = sortMapByValue(keyMap);
-        for (Map.Entry<String, Integer> entry : sortMap.entrySet()) {
-            System.out.println(entry.getKey());
-            System.out.println(entry.getValue());
-        }
-        System.out.println(keyMap.size());
-    }
-
-    public static Map<String, Integer> sortMapByValue(Map<String, Integer> oriMap) {
-        if (oriMap == null || oriMap.isEmpty()) {
-            return null;
-        }
-        Map<String, Integer> sortedMap = new LinkedHashMap<>();
-        List<Map.Entry<String, Integer>> entryList = new ArrayList<>(
-                oriMap.entrySet());
-        entryList.sort(new MapValueComparator());
-
-        Iterator<Map.Entry<String, Integer>> iter = entryList.iterator();
-        Map.Entry<String, Integer> tmpEntry;
-        while (iter.hasNext()) {
-            tmpEntry = iter.next();
-            sortedMap.put(tmpEntry.getKey(), tmpEntry.getValue());
-        }
-        return sortedMap;
-    }
-
-    static class MapValueComparator implements Comparator<Map.Entry<String, Integer>> {
-
-        @Override
-        public int compare(Map.Entry<String, Integer> me1, Map.Entry<String, Integer> me2) {
-
-            return me1.getValue().compareTo(me2.getValue());
+        JiebaSegmenter segmenter = new JiebaSegmenter();
+        String[] sentences =
+                new String[]{"这是一个伸手不见五指的黑夜。我叫孙悟空，我爱北京，我爱Python和C++。", "我不喜欢日本和服。", "雷猴回归人间。",
+                        "工信处女干事每月经过下属科室都要亲口交代24口交换机等技术性器件的安装工作", "结果婚的和尚未结过婚的"};
+        for (String sentence : sentences) {
+            List<SegToken> fsd = segmenter.process(sentence, JiebaSegmenter.SegMode.INDEX);
+            for (SegToken segToken : fsd) {
+                System.out.println(segToken.word);
+            }
         }
     }
+
+
 }
