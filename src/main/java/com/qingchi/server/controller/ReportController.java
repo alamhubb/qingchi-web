@@ -20,6 +20,7 @@ import com.qingchi.base.repository.user.UserImgRepository;
 import com.qingchi.base.utils.DateUtils;
 import com.qingchi.base.utils.UserUtils;
 import com.qingchi.base.model.report.ReportAddVO;
+import com.qingchi.server.check.ModelContentCheck;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -60,6 +61,8 @@ public class ReportController {
 
     @Resource
     private ReportDomain reportDomain;
+    @Resource
+    private ModelContentCheck modelContentCheck;
 
     /*@PostMapping("queryReports")
     public ResultVO<List<ReportVO>> queryReports() {
@@ -88,9 +91,12 @@ public class ReportController {
         //正义值小于300不能再举报
         //给用户通知，您举报成功失败，奖励或扣除积分，每天满多少，低于0 2练个，低于200不能再举报
         if (!user.getType().equals(UserType.system)) {
-            if (!CommonStatus.canPublishContentStatus.contains(user.getStatus())) {
-                return new ResultVO<>(ErrorMsg.userMaybeViolation);
+            ResultVO resultVO = modelContentCheck.checkUser(user);
+            //校验内容是否违规
+            if (resultVO.hasError()) {
+                return new ResultVO<>(resultVO);
             }
+
             Date todayZero = DateUtils.getTodayZeroDate();
             Date curDate = new Date();
             Integer userJusticeValue = user.getJusticeValue();

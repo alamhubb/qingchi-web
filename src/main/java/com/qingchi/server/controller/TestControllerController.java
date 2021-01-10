@@ -28,7 +28,7 @@ public class TestControllerController {
     @RequestMapping("")
     public ResultVO<Object> testUrl(String content) {
         List<Integer> ids = talkRepository.queryTalkIdsTop10ByGender(
-                Collections.singletonList(0), null, ContentStatus.preAudit, CommonStatus.otherCanSeeContentStatus, GenderType.genders, PageRequest.of(0, 10));
+                Collections.singletonList(0), null, ContentStatus.preAudit, ContentStatus.otherCanSeeContentStatus, GenderType.genders, PageRequest.of(0, 10));
         return new ResultVO<>(ids);
     }
 

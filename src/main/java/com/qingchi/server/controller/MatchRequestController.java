@@ -17,6 +17,7 @@ import com.qingchi.base.repository.match.MatchRequestRepository;
 import com.qingchi.base.repository.user.UserRepository;
 import com.qingchi.base.service.FollowService;
 import com.qingchi.base.utils.QingLogger;
+import com.qingchi.server.check.ModelContentCheck;
 import com.qingchi.server.service.MatchRequestService;
 import com.tencentcloudapi.common.Credential;
 import com.tencentcloudapi.common.exception.TencentCloudSDKException;
@@ -55,14 +56,15 @@ public class MatchRequestController {
     @Value("${config.qq.cos.region}")
     private String region;
 
+    @Resource
+    private ModelContentCheck modelContentCheck;
+
     @PostMapping("likeMatchUser")
     public ResultVO<?> likeMatch(UserDO user, @Valid @NotNull Integer userId) throws Exception {
-        if (StringUtils.isEmpty(user.getPhoneNum())) {
-            QingLogger.logger.error("用户未绑定手机号还能调用后台发布功能，用户Id：{}", user.getId());
-            return new ResultVO<>(ErrorMsg.bindPhoneNumCan);
-        }
-        if (!UserStatus.enable.equals(user.getStatus())) {
-            return new ResultVO<>(ErrorMsg.userMaybeViolation);
+        ResultVO resultVO = modelContentCheck.checkUser(user);
+        //校验内容是否违规
+        if (resultVO.hasError()) {
+            return new ResultVO<>(resultVO);
         }
 
         List<UserImgDO> userImgDOS = UserImgUtils.getImgs(user.getId());
@@ -139,13 +141,12 @@ public class MatchRequestController {
 
     @PostMapping("unlikeMatchUser")
     public ResultVO<?> unlikeMatchUser(UserDO user, @Valid @NotNull Integer userId) throws Exception {
-        if (StringUtils.isEmpty(user.getPhoneNum())) {
-            QingLogger.logger.error("用户未绑定手机号还能调用后台发布功能，用户Id：{}", user.getId());
-            return new ResultVO<>(ErrorMsg.bindPhoneNumCan);
+        ResultVO resultVO = modelContentCheck.checkUser(user);
+        //校验内容是否违规
+        if (resultVO.hasError()) {
+            return new ResultVO<>(resultVO);
         }
-        if (!UserStatus.enable.equals(user.getStatus())) {
-            return new ResultVO<>(ErrorMsg.userMaybeViolation);
-        }
+
         List<UserImgDO> userImgDOS = UserImgUtils.getImgs(user.getId());
         //查询出来就是看过，喜欢，不喜欢
         if (userImgDOS != null && userImgDOS.size() > 0) {

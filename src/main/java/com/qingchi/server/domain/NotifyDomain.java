@@ -2,6 +2,7 @@ package com.qingchi.server.domain;
 
 import com.qingchi.base.constant.CommonStatus;
 import com.qingchi.base.constant.NotifyType;
+import com.qingchi.base.constant.status.ContentStatus;
 import com.qingchi.base.model.notify.NotifyDO;
 import com.qingchi.base.model.talk.CommentDO;
 import com.qingchi.base.model.talk.TalkDO;
@@ -51,7 +52,7 @@ public class NotifyDomain {
             //自己评论了自己的talk则要通知所有 其他评论了这个talk的人
             //判断不为子评论，本人回复了别人就是子评论，不给其他评论了这个talk的人发送通知
             if (parentCommentDO == null) {
-                List<CommentDO> commentDOS = commentRepository.findTop50ByTalkIdAndStatusInAndParentCommentIdIsNullOrderByUpdateTimeDesc(talkUserId, CommonStatus.selfCanSeeContentStatus);
+                List<CommentDO> commentDOS = commentRepository.findTop50ByTalkIdAndStatusInAndParentCommentIdIsNullOrderByUpdateTimeDesc(talkUserId, ContentStatus.selfCanSeeContentStatus);
                 for (CommentDO childComment : commentDOS) {
                     //不给自己发送通知
                     if (!childComment.getUserId().equals(commentUserId)) {

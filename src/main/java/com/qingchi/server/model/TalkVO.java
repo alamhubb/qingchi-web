@@ -2,6 +2,7 @@ package com.qingchi.server.model;
 
 import com.qingchi.base.constant.CommonStatus;
 import com.qingchi.base.constant.status.BaseStatus;
+import com.qingchi.base.constant.status.ContentStatus;
 import com.qingchi.base.model.system.DistrictDO;
 import com.qingchi.base.model.talk.TagDO;
 import com.qingchi.base.model.talk.TalkDO;
@@ -151,9 +152,9 @@ public class TalkVO {
         }
         //10毫秒
         if (showAllComment) {
-            this.comments = TalkCommentVO.commentDOToVOS(user, commentRepository.findTop50ByTalkIdAndStatusInAndParentCommentIdIsNullOrderByUpdateTimeDesc(talkDO.getId(), CommonStatus.selfCanSeeContentStatus), true);
+            this.comments = TalkCommentVO.commentDOToVOS(user, commentRepository.findTop50ByTalkIdAndStatusInAndParentCommentIdIsNullOrderByUpdateTimeDesc(talkDO.getId(), ContentStatus.selfCanSeeContentStatus), true);
         } else {
-            this.comments = TalkCommentVO.commentDOToVOS(user, commentRepository.findTop5ByTalkIdAndStatusInAndParentCommentIdIsNullOrderByUpdateTimeDesc(talkDO.getId(), CommonStatus.selfCanSeeContentStatus), false);
+            this.comments = TalkCommentVO.commentDOToVOS(user, commentRepository.findTop5ByTalkIdAndStatusInAndParentCommentIdIsNullOrderByUpdateTimeDesc(talkDO.getId(), ContentStatus.selfCanSeeContentStatus), false);
         }
         this.updateTime = talkDO.getUpdateTime();
         this.commentNum = talkDO.getCommentNum();

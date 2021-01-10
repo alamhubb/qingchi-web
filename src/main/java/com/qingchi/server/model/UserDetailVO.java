@@ -2,6 +2,7 @@ package com.qingchi.server.model;
 
 import com.qingchi.base.constant.ExpenseType;
 import com.qingchi.base.constant.status.BaseStatus;
+import com.qingchi.base.constant.status.ContentStatus;
 import com.qingchi.base.modelVO.ChatVO;
 import com.qingchi.base.redis.DistrictVO;
 import com.qingchi.base.repository.chat.ChatUserRepository;
@@ -174,7 +175,7 @@ public class UserDetailVO {
         //满分10W /1千，得到百分之颜值分
         this.faceRatio = (int) Math.ceil((double) beSeeUser.getFaceRatio() / MatchConstants.FACE_RATIO_BASE_MULTIPLE);
         //todo 这里可以修改为用户存着LIst《userImdId》然后每次不需要连表查询，只根据id查找就行
-        List<UserImgDO> imgDOS = userImgRepository.findTop3ByUserIdAndStatusInOrderByCreateTimeDesc(beSeeUser.getId(), CommonStatus.otherCanSeeContentStatus);
+        List<UserImgDO> imgDOS = userImgRepository.findTop3ByUserIdAndStatusInOrderByCreateTimeDesc(beSeeUser.getId(), ContentStatus.otherCanSeeContentStatus);
         this.imgs = UserImgVO.userImgDOToVOS(imgDOS);
         this.onlineFlag = beSeeUser.getOnlineFlag();
         this.lastOnlineTime = beSeeUser.getLastOnlineTime();

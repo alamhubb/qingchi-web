@@ -71,9 +71,9 @@ public class TalkCommentVO {
         this.childCommentNum = comment.getChildCommentNum();
         this.user = new CommentUserVO(UserUtils.get(comment.getUserId()));
         if (showAll) {
-            this.childComments = TalkCommentVO.commentDOToVOS(user, commentRepository.findTop50ByParentCommentIdAndStatusInOrderByUpdateTimeDesc(comment.getId(), CommonStatus.selfCanSeeContentStatus), true);
+            this.childComments = TalkCommentVO.commentDOToVOS(user, commentRepository.findTop50ByParentCommentIdAndStatusInOrderByUpdateTimeDesc(comment.getId(), ContentStatus.selfCanSeeContentStatus), true);
         } else {
-            this.childComments = TalkCommentVO.commentDOToVOS(user, commentRepository.findTop3ByParentCommentIdAndStatusInOrderByUpdateTimeDesc(comment.getId(), CommonStatus.selfCanSeeContentStatus), false);
+            this.childComments = TalkCommentVO.commentDOToVOS(user, commentRepository.findTop3ByParentCommentIdAndStatusInOrderByUpdateTimeDesc(comment.getId(), ContentStatus.selfCanSeeContentStatus), false);
         }
         if (!ObjectUtils.isEmpty(comment.getReplyCommentId())) {
             this.replyComment = new ReplyCommentVO(CommentUtils.get(comment.getReplyCommentId()));

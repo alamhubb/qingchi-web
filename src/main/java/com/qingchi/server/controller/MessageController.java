@@ -171,7 +171,7 @@ public class MessageController {
          * 如果是系统管理员删除动态，则必须填写原因，删除后发表动态的用户将被封禁
          * 如果是自己删的自己的动态，则不需要填写原因，默认原因是用户自己删除
          */
-        Optional<MessageDO> optionalMsgDO = messageRepository.findFirstOneByIdAndStatusIn(msgVO.getMsgId(), CommonStatus.otherCanSeeContentStatus);
+        Optional<MessageDO> optionalMsgDO = messageRepository.findFirstOneByIdAndStatusIn(msgVO.getMsgId(), ContentStatus.otherCanSeeContentStatus);
         if (!optionalMsgDO.isPresent()) {
             return new ResultVO<>("无法删除不存在的消息");
         }
