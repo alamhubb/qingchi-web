@@ -3,6 +3,7 @@ package com.qingchi.server.controller;
 import com.qingchi.base.common.ResultVO;
 import com.qingchi.base.constant.CommonStatus;
 import com.qingchi.base.constant.ErrorMsg;
+import com.qingchi.base.constant.status.BaseStatus;
 import com.qingchi.base.entity.UserImgUtils;
 import com.qingchi.base.platform.tencent.TencentCloud;
 import com.qingchi.base.model.user.UserDO;
@@ -67,7 +68,7 @@ public class IdentityController {
             if (authFlag) {
                 //设置为已认证
                 user.setIsSelfAuth(true);
-                identityImgDO.setStatus(CommonStatus.enable);
+                identityImgDO.setStatus(BaseStatus.enable);
                 user.setUpdateTime(curDate);
 
                 //userimg不为空

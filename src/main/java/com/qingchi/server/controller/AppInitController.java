@@ -10,6 +10,7 @@ import com.qingchi.base.constant.AppUpdateType;
 import com.qingchi.base.constant.CommonConst;
 import com.qingchi.base.constant.CommonStatus;
 import com.qingchi.base.constant.ViolateType;
+import com.qingchi.base.constant.status.BaseStatus;
 import com.qingchi.base.model.system.FrontErrorLogDO;
 import com.qingchi.base.model.system.HomeSwiperDO;
 import com.qingchi.base.model.user.UserDO;
@@ -267,7 +268,7 @@ public class AppInitController {
         //appConfig
         appInitData.setAppConfig(AppConfigConst.appConfigMap);
         //homeSwipers
-        List<HomeSwiperDO> homeSwiperDOS = homeSwiperRepository.findAllByStatusOrderByTopLevelAscIdDesc(CommonStatus.enable);
+        List<HomeSwiperDO> homeSwiperDOS = homeSwiperRepository.findAllByStatusOrderByTopLevelAscIdDesc(BaseStatus.enable);
         appInitData.setHomeSwipers(homeSwiperDOS.stream().map(HomeSwiperVO::new).collect(Collectors.toList()));
         return new ResultVO<>(appInitData);
     }
@@ -391,7 +392,7 @@ public class AppInitController {
         //reportTypes
         appInitData.setReportTypes(ViolateType.frontShowReportTypes);
         //homeSwipers
-        List<HomeSwiperDO> homeSwiperDOS = homeSwiperRepository.findAllByStatusOrderByTopLevelAscIdDesc(CommonStatus.enable);
+        List<HomeSwiperDO> homeSwiperDOS = homeSwiperRepository.findAllByStatusOrderByTopLevelAscIdDesc(BaseStatus.enable);
         appInitData.setHomeSwipers(homeSwiperDOS.stream().map(HomeSwiperVO::new).collect(Collectors.toList()));
         //districts
         List<DistrictVO> districtVOS = districtRedis.getHotDistricts();

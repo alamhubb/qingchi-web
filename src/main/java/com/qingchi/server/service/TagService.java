@@ -3,6 +3,7 @@ package com.qingchi.server.service;
 import com.qingchi.base.common.ResultVO;
 import com.qingchi.base.constant.CommonStatus;
 import com.qingchi.base.constant.TalkOperateType;
+import com.qingchi.base.constant.status.ContentStatus;
 import com.qingchi.base.model.talk.TagDO;
 import com.qingchi.base.model.talk.TagTypeDO;
 import com.qingchi.base.model.user.UserDO;
@@ -41,11 +42,11 @@ public class TagService {
             for (Integer tagId : tagIds) {
                 if (!ObjectUtils.isEmpty(tagId)) {
                     //查询启用的话题
-                    Optional<TagDO> optionalTagDO = tagRepository.findByIdAndStatus(tagId, CommonStatus.enable);
+                    Optional<TagDO> optionalTagDO = tagRepository.findByIdAndStatus(tagId, ContentStatus.enable);
                     //如果话题存在且可用
                     if (optionalTagDO.isPresent()) {
                         TagDO tagDO = optionalTagDO.get();
-                        if (!CommonStatus.enable.equals(tagDO.getStatus())) {
+                        if (!ContentStatus.enable.equals(tagDO.getStatus())) {
                             return new ResultVO<>("引用了不可使用的话题");
                         }
                         //次数加1

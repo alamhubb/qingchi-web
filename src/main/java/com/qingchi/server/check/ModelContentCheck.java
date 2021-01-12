@@ -4,6 +4,7 @@ import com.qingchi.base.common.ResultVO;
 import com.qingchi.base.constant.CommonStatus;
 import com.qingchi.base.constant.ErrorMsg;
 import com.qingchi.base.constant.UserType;
+import com.qingchi.base.constant.status.UserStatus;
 import com.qingchi.base.model.user.UserDO;
 import com.qingchi.base.platform.qq.QQUtil;
 import com.qingchi.base.platform.weixin.HttpResult;
@@ -27,7 +28,8 @@ public class ModelContentCheck {
             QingLogger.logger.error("用户未绑定手机号还能调用后台发布功能，用户Id：{}", requestUser.getId());
             return new ResultVO<>(ErrorMsg.bindPhoneNumCan);
         }
-        if (!CommonStatus.canPublishContentStatus.contains(requestUser.getStatus())) {
+        //如果用户状态不为可用
+        if (!UserStatus.enable.equals(requestUser.getStatus())) {
             return new ResultVO<>(ErrorMsg.userMaybeViolation);
         }
         return new ResultVO();

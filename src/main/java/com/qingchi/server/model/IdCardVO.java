@@ -1,6 +1,7 @@
 package com.qingchi.server.model;
 
 import com.qingchi.base.constant.CommonStatus;
+import com.qingchi.base.constant.status.BaseStatus;
 import com.qingchi.base.model.user.IdCardDO;
 
 import java.util.Date;
@@ -29,7 +30,7 @@ public class IdCardVO {
 //        目前不需要身份证背面
 //        idCardDO.setBackIdCardImg(backIdCardImg);
         idCardDO.setCreateDate(new Date());
-        idCardDO.setStatus(CommonStatus.enable);
+        idCardDO.setStatus(BaseStatus.enable);
         return idCardDO;
     }
 }

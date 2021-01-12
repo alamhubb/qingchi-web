@@ -2,6 +2,7 @@ package com.qingchi.server.controller;
 
 import com.qingchi.base.constant.status.ChatStatus;
 import com.qingchi.base.constant.status.ChatUserStatus;
+import com.qingchi.base.constant.status.ContentStatus;
 import com.qingchi.base.constant.status.MessageReceiveStatus;
 import com.qingchi.base.domain.ReportDomain;
 import com.qingchi.base.model.chat.ChatDO;
@@ -170,7 +171,7 @@ public class MessageController {
          * 如果是系统管理员删除动态，则必须填写原因，删除后发表动态的用户将被封禁
          * 如果是自己删的自己的动态，则不需要填写原因，默认原因是用户自己删除
          */
-        Optional<MessageDO> optionalMsgDO = messageRepository.findFirstOneByIdAndStatusIn(msgVO.getMsgId(), CommonStatus.otherCanSeeContentStatus);
+        Optional<MessageDO> optionalMsgDO = messageRepository.findFirstOneByIdAndStatusIn(msgVO.getMsgId(), ContentStatus.otherCanSeeContentStatus);
         if (!optionalMsgDO.isPresent()) {
             return new ResultVO<>("无法删除不存在的消息");
         }
@@ -213,7 +214,7 @@ public class MessageController {
                 QingLogger.logger.warn("有人尝试删除不属于自己的消息,用户名:{},id:{},尝试删除msgId：{}", user.getNickname(), user.getId(), msgDO.getId());
                 return new ResultVO<>("系统异常，无法删除不属于自己的动态");
             }
-            msgDO.setStatus(CommonStatus.delete);
+            msgDO.setStatus(ContentStatus.delete);
             msgDO.setDeleteReason("用户自行删除");
         }
         msgDO.setUpdateTime(new Date());

@@ -2,6 +2,7 @@ package com.qingchi.server.controller;
 
 import com.qingchi.base.common.ResultVO;
 import com.qingchi.base.constant.*;
+import com.qingchi.base.constant.status.ContentStatus;
 import com.qingchi.base.domain.ReportDomain;
 import com.qingchi.base.model.system.DistrictDO;
 import com.qingchi.base.model.talk.TagDO;
@@ -62,7 +63,7 @@ public class TalkController {
          * 如果是系统管理员删除动态，则必须填写原因，删除后发表动态的用户将被封禁
          * 如果是自己删的自己的动态，则不需要填写原因，默认原因是用户自己删除
          */
-        Optional<TalkDO> optionalTalkDO = talkRepository.findOneByIdAndStatusIn(talkVO.getTalkId(), CommonStatus.otherCanSeeContentStatus);
+        Optional<TalkDO> optionalTalkDO = talkRepository.findOneByIdAndStatusIn(talkVO.getTalkId(), ContentStatus.otherCanSeeContentStatus);
         if (!optionalTalkDO.isPresent()) {
             return new ResultVO<>("无法删除不存在的动态");
         }
@@ -74,7 +75,7 @@ public class TalkController {
             return new ResultVO<>("系统异常，无法删除不属于自己的动态");
         }
         talkDO.setUpdateTime(new Date());
-        talkDO.setStatus(CommonStatus.delete);
+        talkDO.setStatus(ContentStatus.delete);
         talkDO.setDeleteReason("用户自行删除");
         talkRepository.save(talkDO);
         return new ResultVO<>();

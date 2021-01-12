@@ -3,6 +3,7 @@ package com.qingchi.server.controller;
 import com.qingchi.base.common.ResultVO;
 import com.qingchi.base.constant.CommonConst;
 import com.qingchi.base.constant.CommonStatus;
+import com.qingchi.base.constant.status.BaseStatus;
 import com.qingchi.base.model.user.UserDO;
 import com.qingchi.base.model.user.LoveValueOrderDO;
 import com.qingchi.base.repository.user.LoveValueOrderRepository;
@@ -50,7 +51,7 @@ public class LoveValueController {
         loveValueOrder.setEnable(success);
         loveValueOrder.setUserId(user.getId());
         loveValueOrder.setCreateTime(new Date());
-        loveValueOrder.setStatus(CommonStatus.enable);
+        loveValueOrder.setStatus(BaseStatus.enable);
         //没有成功观看，则只记录一下用户看了视频，没看完，方便今后统计数据
         if (!success) {
             loveValueOrder.setAward(false);
@@ -86,7 +87,7 @@ public class LoveValueController {
         loveValueOrder.setEnable(success);
         loveValueOrder.setUserId(user.getId());
         loveValueOrder.setCreateTime(new Date());
-        loveValueOrder.setStatus(CommonStatus.enable);
+        loveValueOrder.setStatus(BaseStatus.enable);
         //没有成功观看，则只记录一下用户看了视频，没看完，方便今后统计数据
         if (!success) {
             loveValueOrder.setAward(false);
@@ -120,6 +121,6 @@ public class LoveValueController {
         //获取当天0点
         Date zero = DateUtils.getTodayZeroDate();
         Date todayEnd = new Date(zero.getTime() + CommonConst.day);
-        return loveValueOrderRepository.countByUserIdAndStatusAndEnableAndAwardAndCreateTimeBetween(user.getId(), CommonStatus.enable, true, true, zero, todayEnd);
+        return loveValueOrderRepository.countByUserIdAndStatusAndEnableAndAwardAndCreateTimeBetween(user.getId(), BaseStatus.enable, true, true, zero, todayEnd);
     }
 }

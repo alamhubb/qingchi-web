@@ -1,6 +1,7 @@
 package com.qingchi.server.model;
 
 import com.qingchi.base.constant.CommonStatus;
+import com.qingchi.base.constant.status.ContentStatus;
 import com.qingchi.base.entity.CommentUtils;
 import com.qingchi.base.model.talk.CommentDO;
 import com.qingchi.base.repository.talk.CommentRepository;
@@ -70,9 +71,9 @@ public class TalkCommentVO {
         this.childCommentNum = comment.getChildCommentNum();
         this.user = new CommentUserVO(UserUtils.get(comment.getUserId()));
         if (showAll) {
-            this.childComments = TalkCommentVO.commentDOToVOS(user, commentRepository.findTop50ByParentCommentIdAndStatusInOrderByUpdateTimeDesc(comment.getId(), CommonStatus.selfCanSeeContentStatus), true);
+            this.childComments = TalkCommentVO.commentDOToVOS(user, commentRepository.findTop50ByParentCommentIdAndStatusInOrderByUpdateTimeDesc(comment.getId(), ContentStatus.selfCanSeeContentStatus), true);
         } else {
-            this.childComments = TalkCommentVO.commentDOToVOS(user, commentRepository.findTop3ByParentCommentIdAndStatusInOrderByUpdateTimeDesc(comment.getId(), CommonStatus.selfCanSeeContentStatus), false);
+            this.childComments = TalkCommentVO.commentDOToVOS(user, commentRepository.findTop3ByParentCommentIdAndStatusInOrderByUpdateTimeDesc(comment.getId(), ContentStatus.selfCanSeeContentStatus), false);
         }
         if (!ObjectUtils.isEmpty(comment.getReplyCommentId())) {
             this.replyComment = new ReplyCommentVO(CommentUtils.get(comment.getReplyCommentId()));
@@ -86,7 +87,7 @@ public class TalkCommentVO {
                     // 用户不为 null && 自己的评论才显示
                     return (user != null && talkCommentDO.getUserId().equals(user.getId()))
                             //或者评论的状态不为预审核
-                            || !CommonStatus.preAudit.equals(talkCommentDO.getStatus());
+                            || !ContentStatus.preAudit.equals(talkCommentDO.getStatus());
                 })
                 .map(talkCommentDO -> new TalkCommentVO(user, talkCommentDO, showAll)).collect(Collectors.toList());
     }

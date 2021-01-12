@@ -2,6 +2,7 @@ package com.qingchi.server.service;
 
 import com.qingchi.base.common.ResultVO;
 import com.qingchi.base.constant.*;
+import com.qingchi.base.constant.status.ContentStatus;
 import com.qingchi.base.model.talk.TagDO;
 import com.qingchi.base.model.talk.TalkDO;
 import com.qingchi.base.model.user.UserDO;
@@ -111,7 +112,7 @@ public class TalkQueryService {
         //为首次查询
         //只有首页才显示置顶内容？(TalkTabType.home_type.equals(talkType) || (HomeType.home_name.equals(talkType))) &&
         if ((talkIds.size() == 1 && talkIds.get(0).equals(0))) {
-            talkDOS = talkRepository.findTop2ByStatusInAndIdNotInAndGlobalTopGreaterThanOrderByGlobalTopDesc(CommonStatus.otherCanSeeContentStatus, talkIds, CommonStatus.initNum);
+            talkDOS = talkRepository.findTop2ByStatusInAndIdNotInAndGlobalTopGreaterThanOrderByGlobalTopDesc(ContentStatus.otherCanSeeContentStatus, talkIds, CommonStatus.initNum);
             talkIds.addAll(talkDOS.stream().map(TalkDO::getId).collect(Collectors.toList()));
         }
         String gender = talkQueryVO.getGender();

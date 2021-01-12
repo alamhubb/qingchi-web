@@ -2,6 +2,8 @@ package com.qingchi.server.domain;
 
 import com.qingchi.base.common.ResultVO;
 import com.qingchi.base.constant.*;
+import com.qingchi.base.constant.status.ChatStatus;
+import com.qingchi.base.constant.status.ChatUserStatus;
 import com.qingchi.base.model.chat.ChatDO;
 import com.qingchi.base.model.chat.ChatUserDO;
 import com.qingchi.base.model.user.UserDO;
@@ -75,20 +77,20 @@ public class PayShellOpenChatDomain {
         //chat改为开启
         //开启chat
         //你需要自己的chat为代开起
-        chatDO.setStatus(CommonStatus.enable);
+        chatDO.setStatus(ChatStatus.enable);
         chatDO.setUpdateTime(curDate);
         chatDO = chatRepository.save(chatDO);
 
 
         //更改状态返回
         //开启自己的chatUser
-        chatUserDO.setStatus(CommonStatus.enable);
+        chatUserDO.setStatus(ChatUserStatus.enable);
         chatUserDO.setUpdateTime(curDate);
         //自己的要在前台显示，需要有一个状态控制是否前台显示
 //        chatUserDO.setFrontShow(true);
 
         //开启对方的chatUser
-        receiveChatUserDO.setStatus(CommonStatus.enable);
+        receiveChatUserDO.setStatus(ChatUserStatus.enable);
         receiveChatUserDO.setUpdateTime(curDate);
 //        receiveChatUserDO.setFrontShow(true);
         if (needPayOpen) {

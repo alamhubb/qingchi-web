@@ -2,6 +2,7 @@ package com.qingchi.server.model;
 
 import com.qingchi.base.constant.CommonStatus;
 import com.qingchi.base.constant.ReportContentType;
+import com.qingchi.base.constant.status.ContentStatus;
 import com.qingchi.base.model.system.DistrictDO;
 import com.qingchi.base.model.talk.TalkDO;
 import com.qingchi.base.model.user.UserDO;
@@ -37,7 +38,7 @@ public class TalkAddVO {
         talkDO.setCommentNum(0);
         talkDO.setReportNum(0);
         talkDO.setGlobalTop(0);
-        talkDO.setStatus(CommonStatus.enable);
+        talkDO.setStatus(ContentStatus.enable);
         //已在外层经过校验
 
         talkDO.setUserId(user.getId());

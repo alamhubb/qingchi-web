@@ -2,6 +2,7 @@ package com.qingchi.server.factory;
 
 import com.qingchi.base.constant.CommonStatus;
 import com.qingchi.base.constant.ReportContentType;
+import com.qingchi.base.constant.status.ContentStatus;
 import com.qingchi.base.model.talk.CommentDO;
 import com.qingchi.base.repository.talk.CommentRepository;
 import com.qingchi.server.model.CommentAddVO;
@@ -32,7 +33,7 @@ public class CommentFactory {
         CommentDO comment = new CommentDO();
         comment.setNo(++commentNo);
         comment.setContent(addVO.getContent());
-        comment.setStatus(CommonStatus.enable);
+        comment.setStatus(ContentStatus.enable);
         comment.setReportContentType(ReportContentType.comment);
         comment.setHugNum(0);
         comment.setChildCommentNum(0);

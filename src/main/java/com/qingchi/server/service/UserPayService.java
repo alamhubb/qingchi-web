@@ -4,6 +4,7 @@ import com.qingchi.base.config.AppConfigConst;
 import com.qingchi.base.common.ResultVO;
 import com.qingchi.base.constant.CommonStatus;
 import com.qingchi.base.constant.PayType;
+import com.qingchi.base.constant.status.UserStatus;
 import com.qingchi.base.model.user.UserDO;
 import com.qingchi.server.model.UserPayResultVO;
 import com.qingchi.server.platform.PlatformUtils;
@@ -32,7 +33,7 @@ public class UserPayService {
         if (user == null) {
             return new ResultVO<>("请登陆后再进行支付操作");
         }
-        if (CommonStatus.violation.equals(user.getStatus())) {
+        if (UserStatus.violation.equals(user.getStatus())) {
             return new ResultVO<>("用户已被封禁，无法进行支付");
         }
         return new ResultVO<>(PlatformUtils.pay(platform, provider, payType, amount, user, request));

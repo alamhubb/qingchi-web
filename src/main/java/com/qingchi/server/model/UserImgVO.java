@@ -3,6 +3,7 @@ package com.qingchi.server.model;
 import com.qingchi.base.config.AppConfigConst;
 import com.qingchi.base.constant.CommonStatus;
 import com.qingchi.base.constant.ReportContentType;
+import com.qingchi.base.constant.status.ContentStatus;
 import com.qingchi.base.model.user.UserDO;
 import com.qingchi.base.model.user.IdentityImgDO;
 import com.qingchi.base.model.user.UserImgDO;
@@ -50,7 +51,7 @@ public class UserImgVO {
         userImgDO.setQuality(this.getQuality());
         userImgDO.setSize(this.size);
         userImgDO.setUserId(user.getId());
-        userImgDO.setStatus(CommonStatus.enable);
+        userImgDO.setStatus(ContentStatus.enable);
         userImgDO.setCreateTime(new Date());
         userImgDO.setContent(AppConfigConst.img_content);
         userImgDO.setReportContentType(ReportContentType.userImg);

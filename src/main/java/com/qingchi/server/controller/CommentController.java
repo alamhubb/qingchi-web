@@ -3,6 +3,7 @@ package com.qingchi.server.controller;
 import com.qingchi.base.common.ResultVO;
 import com.qingchi.base.constant.CommonStatus;
 import com.qingchi.base.constant.ErrorLevel;
+import com.qingchi.base.constant.status.ContentStatus;
 import com.qingchi.base.entity.ErrorLogUtils;
 import com.qingchi.base.model.monitoring.ErrorLogDO;
 import com.qingchi.base.model.talk.CommentDO;
@@ -74,7 +75,7 @@ public class CommentController {
  * 如果是系统管理员删除动态，则必须填写原因，删除后发表动态的用户将被封禁
  * 如果是自己删的自己的动态，则不需要填写原因，默认原因是用户自己删除
  */
-        Optional<CommentDO> optionalCommentDO = commentRepository.findOneByIdAndStatusIn(commentVO.getCommentId(), CommonStatus.otherCanSeeContentStatus);
+        Optional<CommentDO> optionalCommentDO = commentRepository.findOneByIdAndStatusIn(commentVO.getCommentId(), ContentStatus.otherCanSeeContentStatus);
         if (!optionalCommentDO.isPresent()) {
             return new ResultVO<>("评论已经删除");
         }
@@ -90,10 +91,10 @@ public class CommentController {
         }
         //是否是自己删除自己的动态
         if (commentDO.getUserId().equals(user.getId())) {
-            commentDO.setStatus(CommonStatus.delete);
+            commentDO.setStatus(ContentStatus.delete);
             commentDO.setDeleteReason("评论用户自行删除");
         } else if (talkDO.getUserId().equals(user.getId())) {
-            commentDO.setStatus(CommonStatus.delete);
+            commentDO.setStatus(ContentStatus.delete);
             commentDO.setDeleteReason("动态用户删除评论");
         } else {
             QingLogger.logger.warn("有人尝试删除不属于自己的评论,用户名:{},id:{},尝试删除commentId：{}", user.getNickname(), user.getId(), commentDO.getId());

@@ -3,6 +3,7 @@ package com.qingchi.server.controller;
 import com.qingchi.base.common.ResultVO;
 import com.qingchi.base.constant.CommonStatus;
 import com.qingchi.base.constant.HomeType;
+import com.qingchi.base.constant.status.ContentStatus;
 import com.qingchi.base.model.talk.TalkDO;
 import com.qingchi.base.store.TalkQueryRepository;
 import com.qingchi.base.repository.talk.TalkRepository;
@@ -100,7 +101,7 @@ public class QueryTalkController {
 
     @PostMapping("queryTalkDetail")
     public ResultVO<TalkVO> queryTalkList(@Valid @NotNull Integer talkId, UserDO user) {
-        Optional<TalkDO> optionalTalkDO = talkRepository.findOneByIdAndStatusIn(talkId, CommonStatus.selfCanSeeContentStatus);
+        Optional<TalkDO> optionalTalkDO = talkRepository.findOneByIdAndStatusIn(talkId, ContentStatus.selfCanSeeContentStatus);
         if (optionalTalkDO.isPresent()) {
             TalkDO talkDO = optionalTalkDO.get();
             return new ResultVO<>(new TalkVO(user, talkDO, true));

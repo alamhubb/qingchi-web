@@ -2,6 +2,7 @@ package com.qingchi.server.controller;
 
 import com.qingchi.base.config.AppConfigConst;
 import com.qingchi.base.common.ResultVO;
+import com.qingchi.base.constant.status.ContentStatus;
 import com.qingchi.base.domain.ReportDomain;
 import com.qingchi.base.model.BaseModelDO;
 import com.qingchi.base.constant.*;
@@ -19,6 +20,7 @@ import com.qingchi.base.repository.user.UserImgRepository;
 import com.qingchi.base.utils.DateUtils;
 import com.qingchi.base.utils.UserUtils;
 import com.qingchi.base.model.report.ReportAddVO;
+import com.qingchi.server.check.ModelContentCheck;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -59,6 +61,8 @@ public class ReportController {
 
     @Resource
     private ReportDomain reportDomain;
+    @Resource
+    private ModelContentCheck modelContentCheck;
 
     /*@PostMapping("queryReports")
     public ResultVO<List<ReportVO>> queryReports() {
@@ -87,9 +91,12 @@ public class ReportController {
         //正义值小于300不能再举报
         //给用户通知，您举报成功失败，奖励或扣除积分，每天满多少，低于0 2练个，低于200不能再举报
         if (!user.getType().equals(UserType.system)) {
-            if (!CommonStatus.canPublishContentStatus.contains(user.getStatus())) {
-                return new ResultVO<>(ErrorMsg.userMaybeViolation);
+            ResultVO resultVO = modelContentCheck.checkUser(user);
+            //校验内容是否违规
+            if (resultVO.hasError()) {
+                return new ResultVO<>(resultVO);
             }
+
             Date todayZero = DateUtils.getTodayZeroDate();
             Date curDate = new Date();
             Integer userJusticeValue = user.getJusticeValue();
@@ -120,11 +127,11 @@ public class ReportController {
             //只查询正常能看到的，违规，审核，删除的都提示
             modelOptional = talkRepository.findTop1ById(reportAddVO.getTalkId());
         } else if (ReportContentType.comment.equals(reportContentType)) {
-            modelOptional = commentRepository.findOneByIdAndStatus(reportAddVO.getCommentId(), CommonStatus.enable);
+            modelOptional = commentRepository.findOneByIdAndStatus(reportAddVO.getCommentId(), ContentStatus.enable);
         } else if (ReportContentType.message.equals(reportContentType)) {
-            modelOptional = messageRepository.findOneByIdAndStatus(reportAddVO.getMessageId(), CommonStatus.enable);
+            modelOptional = messageRepository.findOneByIdAndStatus(reportAddVO.getMessageId(), ContentStatus.enable);
         } else if (ReportContentType.userImg.equals(reportContentType)) {
-            modelOptional = userImgRepository.findOneByIdAndStatus(reportAddVO.getUserImgId(), CommonStatus.enable);
+            modelOptional = userImgRepository.findOneByIdAndStatus(reportAddVO.getUserImgId(), ContentStatus.enable);
         } else {
             return new ResultVO<>("错误的内容类型");
         }
@@ -135,7 +142,7 @@ public class ReportController {
         }
         BaseModelDO modelDO = modelOptional.get();
         //不为正常则不该看到，提示已被举报，有点问题不影响业务的小问题，提示信息不对
-        if (!CommonStatus.enable.equals(modelDO.getStatus())) {
+        if (!ContentStatus.enable.equals(modelDO.getStatus())) {
             return new ResultVO<>("内容已被举报，审核中");
         }
         //这里之后才能校验

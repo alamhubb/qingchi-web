@@ -3,6 +3,8 @@ package com.qingchi.server.controller;
 import com.qingchi.base.common.ResultVO;
 import com.qingchi.base.constant.CommonStatus;
 import com.qingchi.base.constant.GenderType;
+import com.qingchi.base.constant.status.ContentStatus;
+import com.qingchi.base.constant.status.ReportStatus;
 import com.qingchi.base.repository.talk.TalkRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,7 +28,7 @@ public class TestControllerController {
     @RequestMapping("")
     public ResultVO<Object> testUrl(String content) {
         List<Integer> ids = talkRepository.queryTalkIdsTop10ByGender(
-                Collections.singletonList(0), null, CommonStatus.preAudit, CommonStatus.otherCanSeeContentStatus, GenderType.genders, PageRequest.of(0, 10));
+                Collections.singletonList(0), null, ContentStatus.preAudit, ContentStatus.otherCanSeeContentStatus, GenderType.genders, PageRequest.of(0, 10));
         return new ResultVO<>(ids);
     }
 
