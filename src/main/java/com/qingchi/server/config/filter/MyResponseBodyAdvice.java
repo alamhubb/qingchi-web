@@ -8,12 +8,32 @@ import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.http.server.ServletServerHttpResponse;
 import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 @ControllerAdvice
 public class MyResponseBodyAdvice implements ResponseBodyAdvice {
+
+
+    /**
+     * 异常处理，返回自定义的异常对象json
+     *
+     * @param req
+     * @param e
+     * @return
+     * @throws Exception
+     */
+    @ExceptionHandler(value = Throwable.class)
+    @ResponseBody
+    public ResultVO<String> jsonErrorHandler(HttpServletRequest req, Throwable e) throws Exception {
+        ResultVO<String> resultVO = new ResultVO(e.getMessage());
+        return resultVO;
+    }
+
     @Override
     public Object beforeBodyWrite(Object result, MethodParameter methodParameter,
                                   MediaType mediaType, Class clas, ServerHttpRequest serverHttpRequest,
