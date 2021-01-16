@@ -249,15 +249,15 @@ public class LoginService {
             logger.error("有人跳过前端，直接访问后台，错误手机号");
             return new ResultVO<>("请输入正确的手机号");
         }
-        //校验验证码
+        //校验验证码，传null用户记录日志
         ResultVO<String> resultVO = authCodeService.verifyAuthCode(phoneNum, authCode, null);
         if (resultVO.hasError()) {
             return resultVO;
         }
-        //如果手机号已经存在账户，则直接使用
+        //如果手机号已经存在账户，则直接使用，正序获取第一个用户
         Optional<UserDO> userDOOptional = userRepository.findFirstByPhoneNumOrderByIdAsc(phoneNum);
         UserDO dbUser;
-
+        //有用户返回，没有创建
         String platform = loginVO.getPlatform();
         if (userDOOptional.isPresent()) {
             dbUser = userDOOptional.get();

@@ -2,11 +2,9 @@ package com.qingchi.server.controller;
 
 import com.qingchi.base.common.ResultVO;
 import com.qingchi.base.constant.ErrorCode;
-import com.qingchi.base.constant.ErrorMsg;
 import com.qingchi.base.constant.PlatformType;
 import com.qingchi.base.model.account.AccountDO;
 import com.qingchi.base.model.user.UserDO;
-import com.qingchi.base.model.user.UserLogDO;
 import com.qingchi.base.platform.weixin.WxDecode;
 import com.qingchi.base.platform.weixin.login.AppLoginVO;
 import com.qingchi.base.platform.weixin.login.LoginDataVO;
@@ -20,8 +18,8 @@ import com.qingchi.base.utils.JsonUtils;
 import com.qingchi.base.utils.QingLogger;
 import com.qingchi.server.model.PhoneNumVO;
 import com.qingchi.server.model.UserDetailVO;
+import com.qingchi.server.service.AuthCodeService;
 import com.qingchi.server.service.LoginService;
-import com.qingchi.server.store.UserLogStoreUtils;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
@@ -58,6 +56,9 @@ public class MiniAppLoginController {
     @Resource
     private LoginService loginService;
 
+    @Resource
+    private AuthCodeService authCodeService;
+
     /**
      * 微信小程序界面点击绑定手机号触发
      * @param bindPhoneVO
@@ -67,30 +68,12 @@ public class MiniAppLoginController {
     @PostMapping("bindPhoneNum")
     @ResponseBody
     public ResultVO<?> bindPhoneNum(@RequestBody LoginDataVO bindPhoneVO, UserDO user) {
-        return bindPhone(bindPhoneVO, user);
+        return wxBindPhoneNum(bindPhoneVO, user);
     }
 
-    /**
-     * 这个是手机号直接绑定的
-     *
-     * @param bindPhoneVO
-     * @param user
-     * @return
-     */
-    @PostMapping("bindPhoneNum2")
-    @ResponseBody
-    public ResultVO<?> bindPhoneNum2(@RequestBody LoginDataVO bindPhoneVO, UserDO user) {
-        return bindPhone(bindPhoneVO, user);
-    }
 
-    private ResultVO<?> bindPhone(LoginDataVO bindPhoneVO, UserDO user) {
-        String userPhoneNum = user.getPhoneNum();
-        //判断用户是否已绑定手机号
-        if (StringUtils.isNotEmpty(userPhoneNum)) {
-            QingLogger.logger.warn("您已绑定手机号，不可重复绑定：{}", user.getId());
-            UserLogStoreUtils.save(new UserLogDO("您已绑定手机号，不可重复绑定", user, userPhoneNum));
-            return new ResultVO<>("您已绑定手机号，不可重复绑定");
-        }
+    //微信绑定手机号方法
+    private ResultVO<?> wxBindPhoneNum(LoginDataVO bindPhoneVO, UserDO user) {
         Boolean sessionEnable = bindPhoneVO.getSessionEnable();
         Optional<AccountDO> accountDOOptional = accountRepository.findOneByUserId(user.getId());
         if (!accountDOOptional.isPresent()) {
@@ -149,10 +132,10 @@ public class MiniAppLoginController {
         try {
             PhoneNumVO phoneNumVO = JsonUtils.objectMapper.readValue(phoneJson, PhoneNumVO.class);
             String phoneNum = phoneNumVO.getPurePhoneNumber();
-            Optional<UserDO> userDOOptional = userRepository.findFirstByPhoneNumOrderByIdAsc(phoneNum);
-            if (userDOOptional.isPresent()) {
-                UserLogStoreUtils.save(new UserLogDO("此手机号已被绑定，请更换其他手机号", user, phoneNum));
-                return new ResultVO<>("此手机号已被绑定，请更换其他手机号，" + ErrorMsg.CONTACT_SERVICE);
+
+            ResultVO<String> resultVO = authCodeService.verifyUserAndPhoneNumMatch(phoneNum, user);
+            if (resultVO.hasError()) {
+                return resultVO;
             }
             user.setPhoneCountryCode(phoneNumVO.getCountryCode());
             user.setPhoneNum(phoneNum);
@@ -196,5 +179,20 @@ public class MiniAppLoginController {
         //需要手动赋值
         loginVO.setPlatform(PlatformType.mp);
         return loginService.mpPlatformLogin(provider, loginVO);
+    }
+
+
+    /**
+     * 不在使用
+     * 这个是手机号直接绑定的
+     *
+     * @param bindPhoneVO
+     * @param user
+     * @return
+     */
+    @PostMapping("bindPhoneNum2")
+    @ResponseBody
+    public ResultVO<?> bindPhoneNum2(@RequestBody LoginDataVO bindPhoneVO, UserDO user) {
+        return wxBindPhoneNum(bindPhoneVO, user);
     }
 }

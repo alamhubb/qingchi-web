@@ -35,13 +35,16 @@ public class PlatformLoginController {
     @Resource
     private RestTemplate restTemplate;
 
+    //app端，小程序端，微信和qq登陆的接口，传入第三方返回的基础信息，昵称等，没有手机号，Provider = 'weixin' | 'qq'
     @PostMapping("platformLogin")
     public ResultVO<?> platformLogin(@RequestBody @Valid LoginDataVO loginVO) {
+        //Provider = 'weixin' | 'qq'
         String provider = loginVO.getProvider();
-        if (org.apache.commons.lang.StringUtils.isEmpty(provider)) {
+        //手机登陆的时候为ProviderType.phone
+        if (StringUtils.isEmpty(provider)) {
             provider = loginVO.getLoginType();
         }
-
+        //todo 这接口有问题，应该拆开，手机号登陆不应该和三方登陆在一起
         if (ProviderType.phone.equals(provider)) {
             return loginService.phoneLogin(loginVO);
         } else {

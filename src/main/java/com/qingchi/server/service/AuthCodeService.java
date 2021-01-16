@@ -6,6 +6,7 @@ import com.qingchi.base.config.AppConfigConst;
 import com.qingchi.base.common.ResultVO;
 import com.qingchi.base.constant.CommonConst;
 import com.qingchi.base.constant.CommonStatus;
+import com.qingchi.base.constant.ErrorCode;
 import com.qingchi.base.constant.ErrorMsg;
 import com.qingchi.base.constant.status.UserStatus;
 import com.qingchi.base.model.account.AuthenticationDO;
@@ -51,10 +52,28 @@ public class AuthCodeService {
     @Value("${config.qq.sms.smsSign}")
     private String smsSign;
 
-    public ResultVO<String> verifyPhoneNum(String phoneNum, UserDO user) {
+    //发送验证码和绑定手机号，会调用这里，为什么发送验证码之后会调用这里呢，因为绑定手机号，和登陆调用的都是这个
+
+    //用户手机号登陆，和非微信小程序绑定手机号，发送验证码时候，都会触发这里
+    //用户未登录，校验手机号格式 校验手机号是否合理，是否为已封禁手机号
+    //用户已登录 校验用户不能已绑定手机号 ，校验手机号和用户匹配，验手机号和用户的关系，判断手机号是否已绑定，
+    public ResultVO<String> verifyUserAndPhoneNumMatch(String phoneNum, UserDO user) {
         if (IntegerUtils.strHasNoNumber(phoneNum)) {
             return new ResultVO<>("请输入正确的手机号");
         }
+        //校验手机号是否已被使用
+        Optional<UserDO> userDOOptional = userRepository.findFirstByPhoneNumOrderByIdAsc(phoneNum);
+        //如果手机号已使用
+        if (userDOOptional.isPresent()) {
+            //用户为空的时候，代表没登陆，所以已绑定的手机号也是可以通过的，因为可能在自己在登陆
+
+            //如果已被使用的手机号已违规，就不能登陆了，违规了，登陆自己的也没意义，不能操作
+            UserDO phoneUser = userDOOptional.get();
+            if (phoneUser.getStatus().equals(UserStatus.violation)) {
+                return new ResultVO<>(ErrorMsgUtil.getErrorCode605ContactServiceValue(phoneUser.getViolationEndTime()));
+            }
+        }
+        //用户不为空的情况
         if (user != null) {
             //判断用户是否已绑定手机号
             if (StringUtils.isNotEmpty((user.getPhoneNum()))) {
@@ -62,13 +81,11 @@ public class AuthCodeService {
                 logger.warn("您已绑定手机号，不可重复绑定：{}", user.getId());
                 return new ResultVO<>("您已绑定手机号，不可重复绑定");
             }
-        }
-        //校验手机号是否已被使用
-        Optional<UserDO> userDOOptional = userRepository.findFirstByPhoneNumOrderByIdAsc(phoneNum);
-        if (userDOOptional.isPresent()) {
-            UserDO userDO = userDOOptional.get();
-            if (userDO.getStatus().equals(UserStatus.violation)) {
-                return new ResultVO<>(ErrorMsgUtil.getErrorCode605ContactServiceValue(userDO.getViolationEndTime()));
+            //用户已注册，未绑定，只有用户的状态下，才校验这个手机号是否已经被绑定了
+            if (userDOOptional.isPresent()) {
+                //提示手机号已被使用，不可再被绑定
+                UserLogStoreUtils.save(new UserLogDO("此手机号已被绑定，请更换其他手机号", user, phoneNum));
+                return new ResultVO<>("此手机号已被绑定，请更换其他手机号，" + ErrorMsg.CONTACT_SERVICE);
             }
         }
         return new ResultVO<>();
@@ -121,7 +138,8 @@ public class AuthCodeService {
             return new ResultVO<>("用户信息错误，无法发送验证码");
         }
 
-        ResultVO<String> resultVO = verifyPhoneNum(phoneNum, user);
+        //如果没用户
+        ResultVO<String> resultVO = verifyUserAndPhoneNumMatch(phoneNum, user);
         if (resultVO.hasError()) {
             return resultVO;
         }
