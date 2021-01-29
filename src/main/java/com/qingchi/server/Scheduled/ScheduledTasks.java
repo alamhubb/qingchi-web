@@ -6,6 +6,7 @@ import com.qingchi.base.config.websocket.WebsocketServer;
 import com.qingchi.base.constant.CommonConst;
 import com.qingchi.base.constant.CommonStatus;
 import com.qingchi.base.constant.status.UserStatus;
+import com.qingchi.base.model.user.UserDO;
 import com.qingchi.base.repository.user.UserRepository;
 import com.qingchi.base.utils.QingLogger;
 import org.springframework.context.annotation.Bean;
@@ -17,6 +18,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import javax.annotation.Resource;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 
 
 @Configuration      //1.主要用于标记配置类，兼备Component的效果。
@@ -62,8 +64,16 @@ public class ScheduledTasks {
     @Scheduled(fixedRate = 600000)
     public void updateUserStatus() {
         Date curDate = new Date();
-        Integer count = userRepository.updateUserVioStatus(UserStatus.violation, UserStatus.enable, curDate);
-        QingLogger.logger.info("今日时间{}，解封用户数量：{}", curDate, count);
+//        Integer count = userRepository.updateUserVioStatus(UserStatus.violation, UserStatus.enable, curDate);
+        List<UserDO> users = userRepository.findByStatusAndViolationEndTimeBefore(UserStatus.violation, curDate);
+        for (UserDO user : users) {
+            user.setUpdateTime(curDate);
+            user.setStatus(UserStatus.enable);
+            userRepository.save(user);
+        }
+//        userRepository.saveAll(users);
+//        redisUtil.del(WebsocketServer.onlineUsersCountKey);
+        QingLogger.logger.info("今日时间{}，解封用户数量：{}", curDate, users.size());
     }
 
     //24小时执行一次，不对应该每天0点执行
