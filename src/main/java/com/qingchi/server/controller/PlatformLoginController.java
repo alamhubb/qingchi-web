@@ -2,6 +2,7 @@ package com.qingchi.server.controller;
 
 import com.qingchi.base.common.ResultVO;
 import com.qingchi.base.constant.ErrorCode;
+import com.qingchi.base.constant.ErrorMsg;
 import com.qingchi.base.constant.ProviderType;
 import com.qingchi.base.constant.PlatformType;
 import com.qingchi.base.platform.qq.QQConst;
@@ -63,7 +64,7 @@ public class PlatformLoginController {
                     ResponseEntity<LoginResult> responseEntity = restTemplate.getForEntity(MessageFormat.format(QQConst.qq_app_unionId_url, accessToken), LoginResult.class);
                     LoginResult wxLoginResult = responseEntity.getBody();
                     if (ObjectUtils.isEmpty(wxLoginResult) || wxLoginResult.hasError()) {
-                        return new ResultVO<>(ErrorCode.BUSINESS_ERROR);
+                        return new ResultVO<>("登陆失败，" + ErrorMsg.CONTACT_SERVICE);
                     }
                     //如果是app平台
                     openId = wxLoginResult.getOpenid();

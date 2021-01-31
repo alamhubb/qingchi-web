@@ -2,6 +2,10 @@ package com.qingchi.server.config.filter;
 
 import com.qingchi.base.common.ResultVO;
 import com.qingchi.base.constant.ErrorCode;
+import com.qingchi.base.entity.ErrorLogUtils;
+import com.qingchi.base.model.monitoring.ErrorLogDO;
+import com.qingchi.base.utils.QingLogger;
+import com.qingchi.base.utils.UserUtils;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.ServerHttpRequest;
@@ -17,8 +21,6 @@ import javax.servlet.http.HttpServletResponse;
 
 @ControllerAdvice
 public class MyResponseBodyAdvice implements ResponseBodyAdvice {
-
-
     /**
      * 异常处理，返回自定义的异常对象json
      *
@@ -29,8 +31,11 @@ public class MyResponseBodyAdvice implements ResponseBodyAdvice {
      */
     @ExceptionHandler(value = Throwable.class)
     @ResponseBody
-    public ResultVO<String> jsonErrorHandler(HttpServletRequest req, Throwable e) throws Exception {
-        ResultVO<String> resultVO = new ResultVO(e.getMessage());
+    public ResultVO<String> jsonErrorHandler(HttpServletRequest req, Throwable e) {
+        QingLogger.logger.error(e.getMessage());
+        QingLogger.logger.error("error:", e);
+        ErrorLogUtils.save(new ErrorLogDO(UserUtils.getUserId(), "拦截器，系统错误", e.getMessage()));
+        ResultVO<String> resultVO = new ResultVO(ErrorCode.SYSTEM_ERROR);
         return resultVO;
     }
 

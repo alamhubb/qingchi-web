@@ -51,7 +51,7 @@ public class UserAuthInterceptor implements HandlerInterceptor {
             }
             operateLogRepository.save(operateLogDO);
         }*/
-        UserDO user = UserUtils.getUserByDB();
+        UserDO user = UserUtils.getUserByDBNoViolation();
 
         String uri = req.getRequestURI();
 

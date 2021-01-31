@@ -169,7 +169,8 @@ public class LoginService {
         LoginResult wxLoginResult = responseEntity.getBody();
         assert wxLoginResult != null;
         if (wxLoginResult.hasError()) {
-            return new ResultVO<>(ErrorCode.BUSINESS_ERROR);
+            return new ResultVO<>("登陆失败，" + ErrorMsg.CONTACT_SERVICE);
+//            return new ResultVO<>(ErrorCode.BUSINESS_ERROR);
         }
         String openId = wxLoginResult.getOpenid();
         if (ProviderType.wx.equals(provider)) {
