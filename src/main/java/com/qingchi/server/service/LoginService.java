@@ -87,7 +87,7 @@ public class LoginService {
         //是否为登陆接口，登陆接口返回token信息
         if (isLogin) {
             //生成userToken
-            String userToken = TokenUtils.generateToken(user.getId());
+            String userToken = TokenUtils.generateTokenById(user.getId());
             userToken = tokenPlusRepository.saveTokenDO(new TokenDO(userToken, user.getId()));
             appInitData.setTokenCode(userToken);
         }
